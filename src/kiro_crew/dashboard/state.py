@@ -10,7 +10,6 @@ import logging
 import math
 import os
 import re
-import tempfile
 import threading
 import time
 import traceback
@@ -4392,25 +4391,23 @@ class DashboardState:
 
         Used by persistence helpers where the caller needs to know about
         write failures (e.g. to return HTTP 500).
+
+        Delegates to :func:`atomic_write`, which re-raises after cleaning up
+        its temp file, so the no-swallowing contract above is unchanged. It
+        also carries the Windows ``os.replace`` sharing-violation retry that
+        this hand-rolled copy lacked.
+
+        Content stays ``bytes`` rather than ``str`` on purpose: text mode
+        applies universal-newline translation, which would rewrite any ``\n``
+        inside the JSON on Windows.
+
+        ``mode=0o600`` is explicit because the hand-rolled version created its
+        temp with ``tempfile.mkstemp`` and never widened it, so folders.json,
+        tags.json, tag_boards.json and cron_folders.json all publish at 0o600
+        today. The helper otherwise falls back to the umask default, normally
+        0o644, which would widen all four.
         """
-        payload = json.dumps(data).encode()
-        fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-        try:
-            # fdopen takes ownership of fd; file-object write() guarantees
-            # the full buffer is written or an exception is raised (a bare
-            # os.write may return a short count silently, which would let
-            # os.replace() install truncated JSON).
-            with os.fdopen(fd, "wb") as f:
-                f.write(payload)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp, str(path))
-        except Exception:
-            try:
-                os.unlink(tmp)
-            except OSError:
-                pass
-            raise
+        atomic_write(path, json.dumps(data).encode(), fsync=True, mode=0o600)
 
     @staticmethod
     def _atomic_write_json(path: Path, data: Any) -> None:
