@@ -43,6 +43,61 @@ PASS_CONCLUSIONS = {"SUCCESS", "NEUTRAL", "SKIPPED"}
 CTX_PASS = {"SUCCESS"}
 CTX_RUNNING = {"PENDING", "EXPECTED"}
 DEFAULT_READINESS_CONTEXT = "PR Readiness"
+
+# A host closes an issue on merge ONLY for these verbs. "Related: #n", "Part of
+# #n" and a bare "#n" render as links and close nothing, which is how finished
+# work merges while its issue stays open forever.
+_CLOSING_KW_RE = re.compile(
+    r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+#\d+",
+    re.IGNORECASE,
+)
+# Any issue-ish reference at all, used to tell "forgot the verb" from
+# "genuinely closes nothing".
+_BARE_REF_RE = re.compile(r"(?<![\w/])#\d+\b")
+# Explicit opt-out so an issue-less PR can say so once instead of being asked
+# every round. Anchored at column 0 and requires the colon, because an
+# UNANCHORED substring is satisfied by any prose that merely discusses this
+# check — including the instruction block of our own body template, which would
+# make an author who copies the template and skips that section look like they
+# declared something. A declaration is a trailer, not a mention.
+_NO_ISSUE_RE = re.compile(r"^no issue closed[ \t]*:", re.IGNORECASE | re.MULTILINE)
+
+
+def closing_link_reason(body, closing_refs):
+    """Return an advisory reason when no issue will close, else None.
+
+    ADVISORY ONLY — the caller prints this, it never changes the exit code. An
+    issue-less PR is legitimate, and a green PR should not be held on
+    bookkeeping.
+
+    ``closing_refs`` is the host's OWN resolution of the body (the
+    ``closingIssuesReferences`` field), so it is the truth about what will
+    actually close. The body regexes only classify *why* it resolved to
+    nothing, which is what makes the message actionable.
+    """
+    if closing_refs:
+        return None
+    body = body or ""
+    if _NO_ISSUE_RE.search(body):
+        return None
+    if _CLOSING_KW_RE.search(body):
+        # Verb is present but the host resolved nothing: wrong repo prefix, a
+        # code fence, or an issue that is already closed/nonexistent.
+        return (
+            "body has a closing keyword but the host resolved no issue "
+            "(check the number and that it is not inside a code fence)"
+        )
+    if _BARE_REF_RE.search(body):
+        return (
+            "body references an issue with no closing keyword - use "
+            "'Fixes #<n>' so it closes on merge, or state 'no issue closed: <why>'"
+        )
+    return (
+        "no issue link - add 'Fixes #<n>', or state 'no issue closed: <why>' "
+        "to record that the omission is deliberate"
+    )
+
+
 # Page cap so a pathological PR can't make us loop unbounded (100 * 50 = 5000).
 _MAX_THREAD_PAGES = 50
 
@@ -291,7 +346,8 @@ def main(argv):
 
     fields = (
         "number,title,state,isDraft,mergeable,mergeStateStatus,"
-        "reviewDecision,url,headRefName,statusCheckRollup"
+        "reviewDecision,url,headRefName,statusCheckRollup,"
+        "body,closingIssuesReferences"
     )
     rc, out, _ = run(["gh", "pr", "view", pr, "--json", fields])
     if rc != 0 or not out:
@@ -336,6 +392,21 @@ def main(argv):
         print("  - {}: {}  [{}]".format(name, shown, kind))
     print("  rollup: total={} running={} failing={}".format(len(rollup), n_running, n_fail))
     print("  aggregate readiness: {}".format(readiness_kind or "not published"))
+    _closes = d.get("closingIssuesReferences") or []
+    print(
+        "  closes on merge: {}".format(
+            ", ".join("#{}".format(i.get("number")) for i in _closes) if _closes else "nothing"
+        )
+    )
+    # Advisory, never a gate. The measured failure was that nobody was ever
+    # ASKED for a trailer, not that authors refuse to write one: across 600
+    # merged PRs the host's auto-close worked every time it had a keyword to
+    # act on. So report the gap where the author will see it and let them
+    # decide -- blocking a green PR on bookkeeping costs more than it saves,
+    # and an issue-less PR is legitimate.
+    _closing = closing_link_reason(d.get("body"), _closes)
+    if _closing:
+        print("  NOTICE: " + _closing)
 
     n_unresolved = unresolved_thread_count(d.get("number"))
     print("-- Review threads " + "-" * 35)
