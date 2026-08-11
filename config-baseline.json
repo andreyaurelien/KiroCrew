@@ -33,6 +33,7 @@
         "notify_override_expiry": true,
         "bot_name": "",
         "conductor_skill": false,
+        "dashboard_control": false,
         "tool_search": true,
         "session_sharing": true,
         "max_subagents": 0,
@@ -394,6 +395,20 @@
       "tags": [],
       "label": "Conductor Skill",
       "help": "Enable agent delegation — loads conductor skill with agent roster.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": false
+    },
+    {
+      "path": "agent.dashboard_control",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Dashboard Control",
+      "help": "Let the agent reorganize your dashboard — the sidebar folder tree and which sessions sit in it — through the kirocrew-dashboard MCP server. OFF by default and the server advertises no tools while off, so a session that never needs it spends no context on it. Takes effect on the next session (tool lists are read once at session start).",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": false

@@ -347,6 +347,7 @@ Managed servers, registered by `agent._MANAGED_MCP_SERVERS` and installed into
 | `kirocrew-cron` | `kirocrew mcp-cron` (`mcp_cron.py`) | `cron_add`, `cron_list`, `cron_update`, `cron_remove`, `cron_remove_all`, `cron_pause`, `cron_resume`, `cron_trigger` |
 | `kirocrew-core` | `kirocrew mcp-core` (`mcp_core.py`) | spawn/subagent, learn, task, messaging, artifact, workflow, knowledge and session-directive tools (see below) |
 | `kirocrew-computer` | `kirocrew mcp-computer` (`mcp_computer.py`) | `computer_list_apps`, `computer_get_state`, `computer_click`, `computer_drag`, `computer_type_text`, `computer_press_key`, `computer_set_value`, `computer_scroll`, `computer_perform_action`, `computer_end_turn` |
+| `kirocrew-dashboard` | `kirocrew mcp-dashboard` (`mcp_dashboard.py`) | `chat_folder_tree`, `chat_folder_create`, `chat_folder_move`, `chat_folder_move_session` |
 
 CLI commands and their MCP twins:
 
@@ -406,6 +407,61 @@ rewrites slash-containing keys to kiro-safe aliases and
 `browser.setup.converge_playwright_servers()` folds every Playwright-proxy entry onto the one
 canonical key, keyed by resolved launch target, so a legacy slash-free key
 re-injected from `~/.kiro/crew/mcp.json` cannot spawn a second backend.
+
+## What belongs in `kirocrew-core`, and what does not
+
+`kirocrew-core` is the surface EVERY session carries. kiro-cli reads `tools/list`
+once per session, so a tool listed there spends context in every request of every
+session for as long as the session lives — whether or not that session will ever
+use it. With `agent.tool_search` on (the default) Kiro Crew forces kiro's deferral
+always-on, so the per-request cost is a name plus a description rather than a full
+JSON schema; it is smaller, not zero, and it scales with the tool count.
+
+That makes the placement question a real one rather than a matter of taste:
+
+- **Core** is for capabilities a session may need *without being asked* —
+  subagents, messaging, memory, artifacts, session-bound directives.
+- **Its own server** is for a capability the user opts into on purpose. Give it
+  the `kirocrew-computer` / `kirocrew-dashboard` shape: registered
+  unconditionally, but `tools/list` returns `[]` and every call refuses until the
+  feature's enable is on. A user who never turns it on pays nothing, which an
+  always-refusing tool in core cannot achieve — it still ships its description
+  every turn.
+
+**A load switch is not a permission — decide which one you are building.** Two
+different jobs get confused because both look like a boolean:
+
+- **Context economy.** "Do not spend every request advertising tools this session
+  will not use." `config.json` is the right home. It does not matter that an
+  auto-approved agent shell can write it: the worst an agent achieves by flipping
+  its own load switch is paying for its own context. `agent.dashboard_control` is
+  this kind.
+- **Authorization.** "The user has granted reach the agent does not otherwise
+  have." `config.json` is the WRONG home — `security.py` spells out why, and the
+  keystone leaves (`computer_use.json`, `browser-mode-enabled`, the Ops Mission
+  Control mode) exist because each grants something outside Kiro Crew (desktop
+  input synthesis, the operator's logged-in browser, writes against production
+  incident tooling) or is the security floor itself. One of those moved out of
+  agent-writable config after review found exactly this mistake.
+
+The test is blast radius, not wording: ask what the agent gains that it did not
+already have. Folder tools grant no new read (`list_sessions` already returns every
+session's title and key) and cannot delete, so they are a load switch. Driving or
+stopping another session is not, and would need a keystone leaf rather than another
+config bool. Ratchet the set riding a load switch so the next capability cannot
+inherit a gate that was never meant to authorize anything.
+
+Per-agent scoping composes on top and needs no new mechanism: an agent spec's own
+`mcpServers` map decides which agents see a server at all
+(`agent_discovery.py`), so a server can be handed to an orchestrator-class agent
+without every agent inheriting it.
+
+Adding a managed server is a **parity tax** — the name must appear in
+`agent._MANAGED_MCP_SERVERS`, `mcp_discovery._MANAGED_SERVER_SUBCOMMANDS` and
+`_MANAGED_SERVER_TOOL_MODULES`, `mcp_cleanup.KIROCREW_BIN_MCP_SERVERS`,
+`onboarding_import._MANAGED_MCP_NAMES`, and the hidden `cli.py` subcommand.
+`test_computer_use_registration.py` asserts those registries are the same set, so
+a half-registered server fails the suite rather than shipping.
 
 ### The one deliberate exception
 

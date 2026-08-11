@@ -802,6 +802,11 @@ NON_EGRESS_REDACTION_MODULES: frozenset[str] = frozenset(
         "knowledge/ingestion.py",
         "mcp_core.py",
         "mcp_cron.py",
+        # Same class as mcp_core.py: an MCP stdio server redacts tool RESULTS and
+        # agent-authored names before they are persisted or returned, but the
+        # egress boundary itself is the transport the result crosses, not this
+        # module.
+        "mcp_dashboard.py",
         "mcp_discovery.py",
         "mcp_gateway/backend.py",
         "workflows/agent_exec.py",
@@ -1087,6 +1092,7 @@ _SCHEMA_REGISTRY_NAMES: tuple[str, ...] = (
     "MCP_CORE_SCHEMAS",
     "MCP_CRON_SCHEMAS",
     "MCP_COMPUTER_SCHEMAS",
+    "MCP_DASHBOARD_SCHEMAS",
 )
 
 

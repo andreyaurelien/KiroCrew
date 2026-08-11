@@ -454,6 +454,19 @@ _MANAGED_MCP_SERVERS: dict[str, dict] = {
     # reached for it. For a tool that can click in an already-authenticated
     # application that would be a complete gate bypass.
     "kirocrew-computer": {"invocation_fn": lambda: _kirocrew_mcp_invocation("mcp-computer")},
+    # Dashboard control (sidebar folder tree + which sessions sit in it).
+    # Registered unconditionally for the same reason as kirocrew-computer: its
+    # stdio server returns an EMPTY tools/list while ``agent.dashboard_control``
+    # is off, so a feature nobody asked for costs the model no context and needs
+    # no per-server ``enabled_fn`` here. Kept OUT of kirocrew-core on purpose —
+    # core is the surface every session carries, and reorganizing the dashboard
+    # is an occasional, deliberate user request, not an always-on capability.
+    #
+    # No ``autoApprove`` key, for the same reason the computer server has none:
+    # an autoApproved MCP tool is approved inside kiro-cli and never reaches
+    # ``hooks.on_tool_call``, so the deny floor and governance ceiling would be
+    # bypassed for tools that write to the user's session layout.
+    "kirocrew-dashboard": {"invocation_fn": lambda: _kirocrew_mcp_invocation("mcp-dashboard")},
 }
 
 

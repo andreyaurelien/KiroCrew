@@ -1000,6 +1000,19 @@ class AgentConfig:
             "Enable agent delegation — loads conductor skill with agent roster.",
         ),
     )
+    dashboard_control: bool = field(
+        default=False,
+        metadata=_meta(
+            "Dashboard Control",
+            "Load the agent's sidebar-folder tools — read the tree, create "
+            "folders, move them, and file a live session into one. OFF by "
+            "default and the server advertises no tools while off, so a session "
+            "that never needs it spends no context on it. This is a load switch, "
+            "not a permission: the tools rearrange layout, read nothing the agent "
+            "cannot already read, and delete nothing. Takes effect on the next "
+            "session (tool lists are read once at session start).",
+        ),
+    )
     tool_search: bool = field(
         default=True,
         metadata=_meta(
@@ -5185,6 +5198,7 @@ class KiroCrewConfig:
                 yolo_duration=_normalize_yolo_duration(agent_data.get("yolo_duration")),
                 notify_override_expiry=agent_data.get("notify_override_expiry", True),
                 conductor_skill=agent_data.get("conductor_skill", False),
+                dashboard_control=_safe_bool(agent_data.get("dashboard_control"), False),
                 tool_search=bool(agent_data.get("tool_search", True)),
                 session_sharing=bool(agent_data.get("session_sharing", True)),
                 max_subagents=agent_data.get("max_subagents", 0),
