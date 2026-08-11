@@ -9533,8 +9533,6 @@
       "session_task": "会话 / 任务",
       "shared": "共用",
       "turns": "轮次",
-      "unattributed": "无归属",
-      "unattributed_hint": "本机上存活、但不归此网关所有的 agent 运行时——可能是上一代网关残留下来，也可能是一个正在运行的 pod（独立网关，有自己数据目录）。",
       "uptime": "运行时长"
     },
     "settings": {

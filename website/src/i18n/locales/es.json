@@ -9771,8 +9771,6 @@
       "session_task": "Sesión / Tarea",
       "shared": "en común",
       "turns": "Turnos",
-      "unattributed": "Sin atribuir",
-      "unattributed_hint": "Runtimes de agente activos en esta máquina que no pertenecen a esta pasarela: un runtime residual de una generación anterior de la pasarela, o un pod en ejecución (una pasarela aparte con su propio directorio de datos).",
       "uptime": "Tiempo activo"
     },
     "settings": {

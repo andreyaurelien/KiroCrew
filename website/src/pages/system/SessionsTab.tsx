@@ -156,7 +156,6 @@ export default function SessionsTab({ planeStateRef }: Props) {
   const sessions = data?.sessions ?? EMPTY_SESSIONS
   const tasks = data?.tasks ?? EMPTY_TASKS
   const totals = data?.totals
-  const unattributed = data?.unattributed ?? null
   const hostMb = totals?.host_mb ?? null
   const rows = useMemo(() => buildTree(sessions, tasks), [sessions, tasks])
   const maxima = useMemo(() => columnMaxima(rows), [rows])
@@ -317,8 +316,6 @@ export default function SessionsTab({ planeStateRef }: Props) {
   ]
   const hideable = table.getAllLeafColumns().filter(c => c.getCanHide())
 
-  /** Whether to show the unattributed row: only when procs > 0. */
-  const showUnattributed = unattributed != null && unattributed.procs > 0
 
   const closePicker = useCallback(() => {
     setPickerOpen(false)
@@ -444,7 +441,7 @@ export default function SessionsTab({ planeStateRef }: Props) {
             </Btn>
           }
         />
-      ) : table.getRowModel().rows.length === 0 && !showUnattributed ? (
+      ) : table.getRowModel().rows.length === 0 ? (
         <EmptyState
           icon={<MemoryStick className="lucide-inline" />}
           title={i18nT('pages.sessionsTab.no_active_sessions')}
@@ -494,35 +491,6 @@ export default function SessionsTab({ planeStateRef }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* Unattributed row — pinned above all sessions, outside sort.
-                Finding 6: use warn tint instead of danger for a documented-healthy state. */}
-            {showUnattributed && (
-              <TableRow data-testid="unattributed-row" className="text-warn">
-                {table.getHeaderGroups()[0]?.headers.map(h => {
-                  const colId = h.column.id
-                  const isName = colId === 'name'
-                  let content: string
-                  if (isName) content = ''
-                  else if (colId === 'rssMb') content = fmtMb(unattributed!.rss_mb)
-                  else if (colId === 'procs') content = fmtNumber(unattributed!.procs)
-                  else if (colId === 'uptimeS') content = fmtUptime(unattributed!.oldest_uptime_s)
-                  else content = '—'
-                  return (
-                    <TableCell
-                      key={h.id}
-                      className={isName ? 'px-3 py-1 text-left text-[12.5px] text-warn font-medium' : `px-3 py-1 ${NUM} text-warn`}
-                    >
-                      {isName ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span>{i18nT('pages.sessionsTab.unattributed')}</span>
-                          <InfoTip text={i18nT('pages.sessionsTab.unattributed_hint')} />
-                        </span>
-                      ) : content}
-                    </TableCell>
-                  )
-                })}
-              </TableRow>
-            )}
             {table.getRowModel().rows.map(row => {
               const r = row.original
               const grouped = row.getIsGrouped()
@@ -645,13 +613,6 @@ export default function SessionsTab({ planeStateRef }: Props) {
         <FooterStat label={i18nT('pages.sessionsTab.footer_sessions')} value={fmtNumber(sessions.length)} />
         <FooterStat label={i18nT('pages.sessionsTab.footer_task_sessions')} value={fmtNumber(tasks.length)} />
         <FooterStat label={i18nT('pages.sessionsTab.footer_session_procs')} value={fmtNumber(procTotal)} />
-        {showUnattributed && (
-          <FooterStat
-            label={i18nT('pages.sessionsTab.unattributed')}
-            value={`${fmtNumber(unattributed!.procs)} · ${fmtGb(unattributed!.rss_mb)}`}
-            warn
-          />
-        )}
       </div>
       )}
       </div>

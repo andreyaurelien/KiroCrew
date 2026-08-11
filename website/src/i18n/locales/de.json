@@ -9652,8 +9652,6 @@
       "session_task": "Sitzung / Aufgabe",
       "shared": "geteilt",
       "turns": "Züge",
-      "unattributed": "Nicht zugeordnet",
-      "unattributed_hint": "Auf diesem Rechner laufende Agent-Runtimes, die diesem Gateway nicht gehören — eine übrig gebliebene Runtime einer früheren Gateway-Generation oder ein laufender Pod (ein eigenes Gateway mit eigenem Datenverzeichnis).",
       "uptime": "Laufzeit"
     },
     "settings": {

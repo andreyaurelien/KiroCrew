@@ -9771,8 +9771,6 @@
       "session_task": "Sessione / Attività",
       "shared": "in comune",
       "turns": "Turni",
-      "unattributed": "Non attribuiti",
-      "unattributed_hint": "Runtime di agente attivi su questa macchina che non appartengono a questo gateway: un runtime residuo di una generazione precedente del gateway, o un pod in esecuzione (un gateway separato con la propria directory dei dati).",
       "uptime": "Tempo attivo"
     },
     "settings": {

@@ -6590,8 +6590,6 @@
       "session_task": "Session / Task",
       "shared": "shared",
       "turns": "Turns",
-      "unattributed": "Unattributed",
-      "unattributed_hint": "Agent runtimes alive on this machine that this gateway does not own — a stale runtime from a previous gateway generation, or a running pod (a separate gateway with its own data home).",
       "uptime": "Uptime"
     },
     "settings": {

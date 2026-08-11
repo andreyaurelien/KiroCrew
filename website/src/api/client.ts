@@ -1449,9 +1449,6 @@ export const api = {
       rss_mb: number; runtimes: number; host_mb: number | null
       host_pct: number | null; rss_is_upper_bound: boolean
     }
-    unattributed: {
-      procs: number; rss_mb: number | null; oldest_uptime_s: number | null
-    } | null
     history: { t: number; mb: number }[]
   }>,
   sessionsUsage: () => fetch('/api/sessions/usage').then(j),

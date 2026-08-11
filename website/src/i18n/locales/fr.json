@@ -9771,8 +9771,6 @@
       "session_task": "Session / Tâche",
       "shared": "en commun",
       "turns": "Tours",
-      "unattributed": "Non attribué",
-      "unattributed_hint": "Runtimes d’agent actifs sur cette machine qui n’appartiennent pas à cette passerelle — un runtime résiduel d’une génération précédente de la passerelle, ou un pod en cours d’exécution (une passerelle distincte avec son propre répertoire de données).",
       "uptime": "Durée"
     },
     "settings": {
