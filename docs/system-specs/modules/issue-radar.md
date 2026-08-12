@@ -44,6 +44,8 @@ wrapped in `_require_enabled` (returns 403 when the app is disabled).
 | POST | `/labels/apply` | Apply label changes (add/remove) |
 | POST | `/issue/state` | Close/reopen an issue |
 | GET/PUT | `/investigation` | Per-issue investigation record. The PUT is the ONE app route also reachable with the gateway internal secret (`_MIXED_INTERNAL_API_PATHS`), because it is the write behind the `issue_radar_record_investigation` MCP tool — see [Recording findings](#recording-findings) |
+| GET | `/dispatch-readiness` | Whether an issue in this repo may be handed to an implementation attempt, plus a machine-readable `reason` — see [Dispatch readiness](#dispatch-readiness) |
+| POST | `/repo/local-path` | Record (or, with an empty value, clear) a connected repo's local checkout. Validates and REFUSES; never falls back to a directory the user did not name |
 | GET/POST | `/recommendations` | AI label taxonomy recommendations |
 | POST | `/labels/create` | Create a new repo label |
 | GET | `/tagging` | The untagged queue (also serves `bulk_max`, the bulk-apply cap, so the client chunks on the server's real limit; and `titles` bounded to the slice a recommendation's examples can cite) (open issues with ZERO labels) plus any cached per-issue label suggestions for it. Never runs the model, so opening the Tagging dashboard costs nothing; suggestions for issues that have since been labelled elsewhere are filtered out |
@@ -57,6 +59,47 @@ wrapped in `_require_enabled` (returns 403 when the app is disabled).
 | GET | `/pull/runs` | The CI runs on a PR's head commit, each with its id plus server-computed `cancellable`/`rerunnable`, so the UI never offers an action the provider will refuse |
 | POST | `/pull/run` | Cancel or re-run one CI run (`failed_only` re-runs just the failed jobs) |
 | POST | `/pulls/bulk` | Apply ONE action to many PRs (`_BULK_PR_ACTIONS`: close, reopen, approve, comment, auto_merge, cancel_auto_merge; max `_BULK_PR_MAX` = 50). `approve` additionally requires a `head_shas` map keyed by PR number, covering EVERY number in the request (see rule 2). Sequential, because the PRs share one provider rate limit. Partial failure is reported per PR rather than failing the batch |
+
+## Dispatch readiness
+
+Every read in this app goes through the user's own provider CLI, which is why
+connecting a repo needs one dialog and no clone. Asking an agent to *implement*
+an issue does need a working copy, so a connected repo carries an optional
+`local_path` in its `config.json` entry and dispatch is gated on it. Phase 0 of
+[the dispatch RFC](../../request-for-change/rfc-issue-radar-dispatch.md) is this
+gate alone: nothing here runs an agent or touches git.
+
+`backend/dispatch.py` owns both halves:
+
+- `resolve_checkout(raw)` returns the path as a usable git work-tree root or
+  `None`. `~` is expanded and symlinks resolved BEFORE the sensitivity test, so a
+  link planted in a benign directory cannot smuggle its target past it;
+  absoluteness is asserted on the expanded input and BEFORE `realpath`, which
+  would otherwise make every value absolute and the test vacuous; the resolved
+  path must not be sensitive per `security.is_sensitive_path`; and it must be a
+  directory holding a `.git` entry. `.git` may be a directory (an ordinary clone)
+  or a FILE (a linked worktree's `gitdir:` pointer) — both are accepted, and a
+  bare repository has neither and is refused, correctly, since it has no work
+  tree to edit.
+- `readiness(local_path)` returns `(ready, reason)` with `reason` one of `ok`,
+  `no_local_path`, or `checkout_unusable`. The last two are deliberately
+  distinct: one asks the user to set a value, the other tells them the value they
+  set broke. An empty string cannot carry that difference, and the UI needs a
+  different sentence for each.
+
+Two properties are load-bearing rather than incidental:
+
+- **Readiness is re-derived on every read**, never trusted from storage. A
+  checkout deleted after it was recorded must not keep reporting ready, for the
+  same reason a check that never ran must not render as a check that passed.
+- **The write route refuses instead of falling back.** A path that does not
+  validate stores nothing, so dispatch can never be pointed at a directory the
+  user did not name. The resolved path is what gets stored, so a later readiness
+  check re-examines the directory the validator accepted.
+
+Neither route is in `_MIXED_INTERNAL_API_PATHS`. Unlike `/investigation`, nothing
+an agent runs needs to write a checkout path, and admitting the internal secret
+here would let a session choose the directory a later dispatch works in.
 
 ## Recording findings
 

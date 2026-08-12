@@ -674,6 +674,57 @@ def _same_repo(
     )
 
 
+def set_repo_local_path(
+    owner: str,
+    repo: str,
+    local_path: str,
+    *,
+    provider: str = "github",
+    host: str = "github.com",
+    root: Path | None = None,
+) -> None:
+    """Persist a repo's local checkout path into its config entry.
+
+    An empty string CLEARS the value rather than storing one, so the same call
+    both sets and unsets and a cleared repo is indistinguishable from one that
+    never had a path. Validation belongs to the caller
+    (:func:`dispatch.resolve_checkout`): this function stores what it is given so
+    that a path which stops being valid later is still visible to the readiness
+    check instead of vanishing.
+    """
+    cleaned = (local_path or "").strip()
+    with _config_lock(root):
+        config = read_config(root)
+        for r in config.get("repos", []):
+            if _same_repo(r, owner, repo, provider=provider, host=host):
+                if cleaned:
+                    r["local_path"] = cleaned
+                else:
+                    r.pop("local_path", None)
+        write_config(config, root)
+
+
+def read_repo_local_path(
+    owner: str,
+    repo: str,
+    *,
+    provider: str = "github",
+    host: str = "github.com",
+    root: Path | None = None,
+) -> str:
+    """Return a repo's stored local checkout path, or ``""`` when unset.
+
+    Returns ``""`` for a repo that is not connected at all, so a caller asking
+    about an unknown repo gets the same "no path" answer as one asking about a
+    connected repo with none -- both mean dispatch cannot proceed, and neither is
+    an error worth its own branch.
+    """
+    for r in list_connected_repos(root):
+        if _same_repo(r, owner, repo, provider=provider, host=host):
+            return str(r.get("local_path") or "")
+    return ""
+
+
 def set_repo_permissions(
     owner: str,
     repo: str,
