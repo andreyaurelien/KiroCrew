@@ -23,6 +23,7 @@ from kiro_crew.browser.command_bus import (
     QueueFullError,
     get_command_bus,
 )
+from kiro_crew.browser.preview import registry as preview_registry
 from kiro_crew.browser.screencast import BROWSER_FRAME_EVENT, build_frame_payload
 from kiro_crew.browser.setup import (
     BROWSER_ENGINES,
@@ -1905,6 +1906,111 @@ def _resolve_browse_session_key(host_pid: Any) -> str:
         except Exception:
             break
     return ""
+
+
+async def api_browser_preview_set(request: web.Request) -> web.Response:
+    """PUT /api/browser/preview — name the gateway-local page to mirror.
+
+    The panel's ``iframe`` renders in the USER's browser, so a loopback URL points
+    at the user's own machine; when the dashboard is reached over a network the
+    gateway's own ``localhost`` is unreachable there and the iframe can only paint
+    blank. This route records which gateway-local page the panel wants, and the
+    Playwright MCP proxy (which runs on the gateway host, where that URL DOES
+    resolve) picks it up on its next tick and navigates, feeding the existing
+    screenshot mirror.
+
+    Read-only by construction: the panel names a page and receives frames. Nothing
+    here forwards input to the page, which is what keeps this out of reverse-proxy
+    territory — a proxy on the dashboard's own origin would make the previewed app
+    same-origin with the dashboard and expose the auth cookie to it.
+
+    Loopback targets only (:func:`kiro_crew.browser.preview.normalize_target`): a
+    non-loopback page already renders in the iframe or the native view, so
+    accepting one would add a way to make the gateway's browser fetch arbitrary
+    URLs for no gain. Refusals are 400 with the reason, never a silent no-op.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid JSON"}, status=400)
+    if not isinstance(body, dict):
+        return web.json_response({"error": "invalid JSON"}, status=400)
+    session_key = str(body.get("session_key") or "").strip()
+    url = str(body.get("url") or "")
+    if not session_key:
+        return web.json_response({"error": "session_key required"}, status=400)
+    want = preview_registry().set_want(session_key, url)
+    if want is None:
+        _sel().log_tool_invocation(
+            session_key=session_key or "dashboard",
+            tool_name="browser_preview_set",
+            outcome="invalid_input",
+            downstream_service="browser",
+            resources="non-loopback-or-malformed",
+        )
+        return web.json_response(
+            {"error": "url must be an http(s) page on the gateway's own loopback host"},
+            status=400,
+        )
+    _sel().log_tool_invocation(
+        session_key=session_key,
+        tool_name="browser_preview_set",
+        outcome="completed",
+        downstream_service="browser",
+        resources=f"generation={want.generation}",
+    )
+    return web.json_response({"ok": True, "generation": want.generation, "url": want.url})
+
+
+async def api_browser_preview_clear(request: web.Request) -> web.Response:
+    """DELETE /api/browser/preview — stop mirroring for this session.
+
+    Called when the panel closes or navigates away. Expiry already covers a lost
+    tab; this makes the common case immediate instead of waiting out the TTL.
+    """
+    session_key = (request.query.get("session_key") or "").strip()
+    if not session_key:
+        return web.json_response({"error": "session_key required"}, status=400)
+    cleared = preview_registry().clear_want(session_key)
+    return web.json_response({"ok": True, "cleared": cleared})
+
+
+async def api_browser_preview_poll(request: web.Request) -> web.Response:
+    """POST /api/browser/preview/poll — the proxy asks what to mirror.
+
+    MACHINE endpoint, loopback-gated exactly like ``/api/browser/frame``: the
+    caller is the Playwright MCP proxy on this host, and the answer names a page
+    that proxy will navigate to.
+
+    Identity comes from ``host_pid`` through the same gateway-signed pid->key
+    sidecar the frame route uses (:func:`_resolve_browse_session_key`), NOT from a
+    caller-supplied session key: the proxy's frozen-env key is empty under the
+    warm pool, and trusting a body field would let one browse session pick up
+    another's preview target. A proxy whose pid chain has no verifiable mapping
+    gets an empty answer rather than someone else's page.
+    """
+    if not is_loopback(request.remote or ""):
+        _sel().log_tool_invocation(
+            session_key="dashboard",
+            tool_name="browser_preview_poll",
+            outcome="denied",
+            downstream_service="browser",
+            resources="non-loopback",
+        )
+        return web.json_response({"error": "loopback only"}, status=403)
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid JSON"}, status=400)
+    if not isinstance(body, dict):
+        return web.json_response({"error": "invalid JSON"}, status=400)
+    resolved = await asyncio.to_thread(_resolve_browse_session_key, body.get("host_pid"))
+    if not resolved:
+        return web.json_response({})
+    want = preview_registry().get_want(resolved.removeprefix("dashboard:"))
+    if want is None:
+        return web.json_response({})
+    return web.json_response({"url": want.url, "generation": want.generation})
 
 
 async def api_browser_frame(request: web.Request) -> web.Response:

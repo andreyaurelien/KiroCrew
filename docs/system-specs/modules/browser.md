@@ -278,8 +278,9 @@ control channel.
 > Note: the chat side panel's **"Web Preview"** tab (`WebPreviewPanel`, opened
 > from the + menu) is a SEPARATE feature — a URL-addressable iframe that
 > live-previews a local dev server the user is running (per-session URL), NOT
-> this agent-browse screenshot mirror. It does not consume the `browser_frame`
-> stream. The URL bar has back/forward (a URL-bar history stack — an iframe's
+> this agent-browse screenshot mirror. It consumes the `browser_frame` stream
+> only as the remote-loopback FALLBACK described below. The URL bar has
+> back/forward (a URL-bar history stack — an iframe's
 > own cross-origin page history isn't readable), an inline reload, an
 > open-in-browser link inside the field, and an **expand** toggle: expand
 > broadcasts `PREVIEW_FOCUS_EVENT`, on which App collapses the left nav and
@@ -299,6 +300,30 @@ control channel.
 > tab-active only); two consecutive connection failures ⇒ the iframe is unmounted
 > and a "server not reachable" state shown instead of the stale page, and a later
 > successful probe auto-restores it.
+>
+> **Remote loopback fallback.** The iframe resolves its URL in the USER's
+> browser, so a loopback target names the user's machine — the same host as the
+> gateway only when the dashboard is served locally. Over a network the gateway's
+> own `127.0.0.1:5173` can never render there. When the liveness probe above
+> reports an unreachable target AND that target is loopback AND no native view is
+> open, the panel stops trying to frame it and asks the gateway-side browser to
+> open it instead, showing the frame mirror. The probe is the trigger rather than
+> an origin heuristic because an SSH tunnel looks local while the dev port may not
+> be forwarded.
+>
+> The panel PUTs a *want* (`{session_key, url}`) that the proxy polls and turns
+> into an injected `browser_navigate` (`__mc_preview_` id prefix, demuxed exactly
+> like pump ids so the agent never sees it); a live want also counts as pump
+> activity, which is what keeps frames flowing while a human watches a page
+> nobody's agent is touching. Wants are loopback-only (a non-loopback page
+> already renders in the iframe or the native view, so accepting one would only
+> add a way to make the gateway's browser fetch arbitrary URLs) and expire after
+> 45s, refreshed by the open panel — so a closed tab stops the mirror without
+> having to send anything. Read-only: a page name goes in, pixels come back. A
+> same-origin reverse proxy would be the interactive alternative and is
+> deliberately not built — it would make the previewed app same-origin with the
+> dashboard and hand it the auth cookie the `isolatePreviewHost` swap below exists
+> to withhold.
 >
 > **Security.** The iframe is loopback-only (http(s), mixed-content-guarded). Cookies
 > are scoped by host but not port, so `isolatePreviewHost` swaps a preview whose
@@ -357,6 +382,9 @@ control channel.
   - `POST /api/browser-event` — broadcast browser activity events via WebSocket
   - `POST /api/browser/frame` — ingest a browse screenshot, rebroadcast as `browser_frame` WS event, return live subscriber count (loopback-only, in `internal_paths`)
   - `POST /api/browser/pump-audit` — SEL audit for proxy active-pump screenshot injections (loopback-only, in `internal_paths`)
+  - `PUT /api/browser/preview` — record which gateway-local page this session wants mirrored (cookie-authed; loopback URLs only)
+  - `DELETE /api/browser/preview` — drop that want when the panel closes (expiry covers a lost tab)
+  - `POST /api/browser/preview/poll` — the proxy asks what to open; session resolved from `host_pid` via the signed pid→key sidecar, never from the body (loopback-only, in `internal_paths`)
 
 ### Security
 

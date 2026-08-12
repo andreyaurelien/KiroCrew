@@ -2314,6 +2314,15 @@ export const api = {
     patch(`/api/artifacts/${encodeURIComponent(slug)}/comments/${encodeURIComponent(commentId)}`, body).then(j),
   browserAuthRetry: () => post('/api/browser-auth-retry', {}).then(j),
   getBrowserConfig: () => get('/api/browser/config').then(j) as Promise<{enabled: boolean; engine: string; engines: string[]; extension_mode: boolean; token: boolean; installed: boolean}>,
+  // Remote loopback preview: name the gateway-local page the frame mirror should
+  // show. The panel's iframe renders in the USER's browser, so a loopback URL
+  // points at their machine — unreachable when the dashboard is remote. These two
+  // hand the target to the gateway-side browser instead, which is where that URL
+  // resolves. Read-only: a page goes in, frames come back.
+  setBrowserPreview: (sessionKey: string, url: string) =>
+    put('/api/browser/preview', { session_key: sessionKey, url }).then(j) as Promise<{ok: boolean; generation: number; url: string}>,
+  clearBrowserPreview: (sessionKey: string) =>
+    del(`/api/browser/preview?session_key=${encodeURIComponent(sessionKey)}`).then(j) as Promise<{ok: boolean; cleared: boolean}>,
   saveBrowserConfig: (body: {enabled: boolean; engine: string; extension_mode: boolean; token: string}) => put('/api/browser/config', body).then(j) as Promise<{ok: boolean; mcp_status?: string; enabled?: boolean; engine?: string; install?: {ok: boolean; step: string; detail: string; engine: string}}>,
   // Computer use (desktop automation). The PUT returns the refreshed snapshot so
   // the panel re-renders from server truth rather than its optimistic guess.

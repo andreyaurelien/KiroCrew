@@ -286,6 +286,13 @@ _STRICT_INTERNAL_API_PATHS = frozenset(
         "/api/browser-event",
         "/api/browser/frame",
         "/api/browser/pump-audit",
+        # The proxy asking which gateway-local page a panel wants mirrored. MACHINE
+        # endpoint in the same trust class as ``/api/browser/frame`` — the caller is
+        # the Playwright proxy on this host and the answer names a page it will
+        # navigate to. The browser-called half of the feature (PUT/DELETE
+        # ``/api/browser/preview``) is deliberately NOT here: it is cookie-authed
+        # like every other panel route, and the longer poll path cannot shadow it.
+        "/api/browser/preview/poll",
         # Native browser command channel (agent->Electron). MACHINE endpoints,
         # same trust class as ``/api/browser/frame``: the MCP proxy posts commands
         # and the Electron main process long-polls/returns results, all loopback +
@@ -1045,6 +1052,9 @@ def _register_mcp_routes(app: web.Application) -> None:
     app.router.add_post("/api/browser-auth-retry", handlers.api_browser_auth_retry)
     app.router.add_post("/api/browser/frame", handlers.api_browser_frame)
     app.router.add_post("/api/browser/pump-audit", handlers.api_browser_pump_audit)
+    app.router.add_put("/api/browser/preview", handlers.api_browser_preview_set)
+    app.router.add_delete("/api/browser/preview", handlers.api_browser_preview_clear)
+    app.router.add_post("/api/browser/preview/poll", handlers.api_browser_preview_poll)
     app.router.add_post("/api/browser/command", handlers.api_browser_command)
     app.router.add_post("/api/browser/command-drain", handlers.api_browser_command_drain)
     app.router.add_post("/api/browser/command-result", handlers.api_browser_command_result)

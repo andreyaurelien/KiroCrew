@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { screen, fireEvent, act, waitFor } from '@testing-library/react'
 
 import { renderWithProviders } from './helpers'
+import { api } from '../api/client'
 import WebPreviewPanel, { normalizeUrl, setSessionPreviewUrl, setSessionPreviewPending, isolatePreviewHost, isDashboardOrigin, withCacheBuster } from '../components/WebPreviewPanel'
 
 // The crop button is gated on snip support (getDisplayMedia). Force it on so
@@ -357,6 +358,65 @@ describe('WebPreviewPanel', () => {
     } finally {
       vi.useRealTimers()
       vi.unstubAllGlobals()
+    }
+  })
+
+
+  it('falls back to the gateway-side browser when an unreachable target is loopback', async () => {
+    // The iframe resolves a loopback URL against the USER's machine. When the
+    // dashboard is remote that is the wrong host, and the probe failing is the
+    // only reliable signal for it (an SSH tunnel looks local while the dev port
+    // may not be forwarded). At that point the gateway's own browser is asked to
+    // open the page and the frame mirror shows it.
+    vi.useFakeTimers()
+    const fetchMock = vi.fn().mockRejectedValue(new Error('refused'))
+    vi.stubGlobal('fetch', fetchMock)
+    const setPreview = vi.spyOn(api, 'setBrowserPreview')
+      .mockResolvedValue({ ok: true, generation: 1, url: 'http://127.0.0.1:3000/' })
+    const clearPreview = vi.spyOn(api, 'clearBrowserPreview')
+      .mockResolvedValue({ ok: true, cleared: true })
+    try {
+      const view = renderWithProviders(<WebPreviewPanel sessionKey="sess-1" />)
+      fireEvent.click(screen.getByText(':3000'))
+      await act(async () => { await vi.advanceTimersByTimeAsync(11000) })
+
+      expect(setPreview).toHaveBeenCalled()
+      const [sessionArg, urlArg] = setPreview.mock.calls[0]
+      expect(sessionArg).toBe('sess-1')
+      expect(new URL(urlArg).port).toBe('3000')
+      // The mirror shell replaces the "not reachable" card, so the user sees a
+      // surface that can actually show the page rather than a dead end.
+      expect(screen.getByText('Browser — live')).toBeInTheDocument()
+
+      // Unmounting stops the gateway-side mirror instead of leaving it pumping.
+      view.unmount()
+      expect(clearPreview).toHaveBeenCalledWith('sess-1')
+    } finally {
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+      setPreview.mockRestore()
+      clearPreview.mockRestore()
+    }
+  })
+
+  it('does not ask the gateway to mirror an unreachable NON-loopback target', async () => {
+    // A public site that refuses to be framed is not this feature's problem, and
+    // pointing the gateway's browser at arbitrary URLs on the panel's behalf is
+    // exactly what the loopback-only rule exists to prevent.
+    vi.useFakeTimers()
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('refused')))
+    const setPreview = vi.spyOn(api, 'setBrowserPreview')
+      .mockResolvedValue({ ok: true, generation: 1, url: '' })
+    try {
+      renderWithProviders(<WebPreviewPanel sessionKey="sess-1" />)
+      act(() => { setSessionPreviewUrl('sess-1', 'https://example.com') })
+      await act(async () => { await vi.advanceTimersByTimeAsync(11000) })
+
+      expect(setPreview).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+      setPreview.mockRestore()
     }
   })
 

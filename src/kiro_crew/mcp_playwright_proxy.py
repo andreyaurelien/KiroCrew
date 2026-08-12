@@ -449,6 +449,117 @@ _pump_inflight_id: str | None = None
 _pump_sent_at = 0.0
 _last_browse_activity = 0.0
 
+# ── Preview wants: the panel names a gateway-local page to mirror ─────────────
+#
+# The dashboard's iframe preview renders in the USER's browser, so a loopback URL
+# resolves on their machine, not this one. When the dashboard is reached over a
+# network the gateway's own ``localhost`` is unreachable there. This proxy runs
+# where that URL DOES resolve, so the panel records a want with the gateway and we
+# navigate to it here, feeding the frame mirror that already exists.
+#
+# The injection mechanism is the pump's: a namespaced JSON-RPC id whose response is
+# demuxed and never forwarded to the agent. Only the payload differs
+# (``browser_navigate`` instead of ``browser_take_screenshot``).
+_PREVIEW_ID_PREFIX = "__mc_preview_"
+#: Seconds between preview polls. Looser than the pump interval — a want changes
+#: on human action, so polling it every frame would be wasted loopback traffic.
+_PREVIEW_POLL_INTERVAL = 2.0
+_preview_seq = 0
+_preview_generation: int | None = None
+_preview_polled_at = 0.0
+#: Set while a want is live. Keeps ``_should_pump`` firing: without it the mirror
+#: would go cold ``_PUMP_ACTIVE_WINDOW`` after the navigation, since the pump's
+#: other activity source is the agent calling a browser tool and a user watching a
+#: page is not that. Cleared when the want lapses, so the pump stops on its own
+#: once the panel stops refreshing (tab closed, network lost).
+_preview_active_until = 0.0
+
+
+def _gateway_preview_poll_url() -> str:
+    """Loopback gateway endpoint that answers which page this session wants."""
+    port = os.environ.get("KIROCREW_PORT", "5476")
+    return f"http://127.0.0.1:{port}/api/browser/preview/poll"
+
+
+def _fetch_preview_want() -> dict[str, Any] | None:
+    """Ask the gateway for this session's preview want.
+
+    Identity is our own pid: the gateway resolves it through the signed pid->key
+    sidecar, the same path the frame POST uses, because our frozen-env session key
+    is empty under the warm pool. Returns ``None`` on any failure — a missed poll
+    is retried on the next tick, and a gateway that is down means nobody is
+    watching anyway.
+    """
+    try:
+        body = json.dumps({"host_pid": os.getpid()}).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+        secret = _internal_secret()
+        if secret:
+            headers["X-Internal-Secret"] = secret
+        req = urllib.request.Request(
+            _gateway_preview_poll_url(), data=body, headers=headers, method="POST"
+        )
+        resp = loopback_urlopen(req, timeout=2)
+        try:
+            payload = json.loads(resp.read().decode("utf-8") or "{}")
+        finally:
+            resp.close()
+        return payload if isinstance(payload, dict) else None
+    except Exception:
+        return None
+
+
+def _preview_navigate_request(url: str) -> dict[str, Any]:
+    """The JSON-RPC call that points the browser at *url* (pure, for tests)."""
+    global _preview_seq
+    _preview_seq += 1
+    return {
+        "jsonrpc": "2.0",
+        "id": f"{_PREVIEW_ID_PREFIX}{_preview_seq}",
+        "method": "tools/call",
+        "params": {"name": "browser_navigate", "arguments": {"url": url}},
+    }
+
+
+def _is_preview_id(req_id: Any) -> bool:
+    """True if a response id belongs to a proxy-injected preview navigation."""
+    return isinstance(req_id, str) and req_id.startswith(_PREVIEW_ID_PREFIX)
+
+
+def _maybe_inject_preview(proc_stdin: Any, now: float) -> bool:
+    """Poll the gateway for a preview want and navigate when it is new.
+
+    Returns True when a navigation was injected. Rate-limited by
+    ``_PREVIEW_POLL_INTERVAL``; only a generation change navigates, so a panel
+    heartbeating the page already on screen does not reload it under the user.
+    """
+    global _preview_generation, _preview_polled_at, _preview_active_until
+    if not _pump_enabled or _native_panel_seen:
+        return False
+    if (now - _preview_polled_at) < _PREVIEW_POLL_INTERVAL:
+        return False
+    _preview_polled_at = now
+    want = _fetch_preview_want()
+    if not want or not want.get("url"):
+        # The want lapsed (or never existed): stop treating preview as activity so
+        # the pump winds down instead of screenshotting for nobody.
+        _preview_active_until = 0.0
+        _preview_generation = None
+        return False
+    _preview_active_until = now + _PUMP_ACTIVE_WINDOW
+    generation = want.get("generation")
+    if generation == _preview_generation:
+        return False
+    _preview_generation = generation
+    try:
+        with _proc_stdin_lock:
+            _write_message_to_subprocess(proc_stdin, _preview_navigate_request(str(want["url"])))
+        return True
+    except Exception:
+        # Retry on the next tick by forgetting the generation we failed to apply.
+        _preview_generation = None
+        return False
+
 
 def _note_browse_activity(original: dict[str, Any] | None) -> None:
     """Mark browse activity when a completed request was a ``browser_*`` tool call."""
@@ -487,7 +598,7 @@ def _should_pump(now: float) -> bool:
         return False
     if _pump_inflight_id is not None and (now - _pump_sent_at) < _PUMP_TIMEOUT:
         return False
-    if (now - _last_browse_activity) > _PUMP_ACTIVE_WINDOW:
+    if (now - _last_browse_activity) > _PUMP_ACTIVE_WINDOW and now >= _preview_active_until:
         return False
     if _last_subscriber_count <= 0:
         return False
@@ -524,6 +635,10 @@ def _pump_loop(proc_stdin) -> None:
         # Abandon a stuck in-flight pump so a hung browser can't wedge us.
         if _pump_inflight_id is not None and (now - _pump_sent_at) >= _PUMP_TIMEOUT:
             _pump_inflight_id = None
+        # A panel-requested page takes this tick: navigating IS the visible change,
+        # and the next tick screenshots the result.
+        if _maybe_inject_preview(proc_stdin, now):
+            continue
         if not _should_pump(now):
             continue
         # Audit BEFORE injecting: the gateway emits the SEL tool-invocation event
@@ -1200,6 +1315,13 @@ def run_proxy(args: list[str]) -> None:
             # tracked there).
             _clear_pump_inflight(req_id)
             _relay_pump_frame(msg)
+            continue
+        if _is_preview_id(req_id):
+            # Proxy-injected preview navigation: the agent never asked for it, so
+            # its response must not reach kiro-cli. Nothing to relay either — the
+            # next pump tick screenshots whatever the page became. A navigation
+            # error is left to that: a frame of the browser's error page is a
+            # truer answer for the watcher than a message they cannot see.
             continue
         if req_id is None and "error" in msg:
             continue

@@ -6,6 +6,7 @@ import { isScreenSnipSupported } from '../hooks/useScreenSnip'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useBrowserFrame } from '../hooks/useBrowserFrame'
 import { useNativeBrowser } from '../hooks/useNativeBrowser'
+import { api } from '../api/client'
 
 import { i18nT } from '../i18n/t'
 import { fmtTimeNumeric } from '../i18n/format'
@@ -177,6 +178,11 @@ export function withCacheBuster(url: string, key: number): string {
 
 /** Loopback hostnames that share cookies by host (port-agnostic). */
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '[::1]', '::1'])
+
+/** How often the panel refreshes its preview want. Comfortably inside the
+ *  gateway's want TTL (45s), so a live panel never lapses while a closed tab
+ *  stops the gateway-side mirror without needing to send anything. */
+const PREVIEW_HEARTBEAT_MS = 15_000
 
 /** True for any host that resolves to the local machine and can therefore share
  *  host-scoped cookies with a same-host dashboard — the loopback IPs/names plus
@@ -469,7 +475,46 @@ export default function WebPreviewPanel({ sessionKey, active = true }: { session
   // arriving into a desktop shell) the mirror was suppressed while the native
   // view had nothing to show -- a blank panel. `!nativeOpen` is the real
   // condition: a native view that is open owns the surface, otherwise mirror.
-  const showMirror = isLive && !nativeOpen
+  // Set once the gateway has accepted a preview want for this panel (see the
+  // remote-loopback effect below). Declared here because `showMirror` reads it.
+  const [previewRequested, setPreviewRequested] = useState(false)
+  const showMirror = (isLive || previewRequested) && !nativeOpen
+
+  // ── Remote loopback preview ───────────────────────────────────────────────
+  // A loopback URL in the address bar names the GATEWAY's localhost, but the
+  // iframe resolves it against the USER's machine. Those are the same host only
+  // when the dashboard is served locally; over a network the iframe can never
+  // paint that page. Rather than guess from the origin (an SSH tunnel looks local
+  // while the dev port may not be forwarded), key off the liveness probe that
+  // already runs: once it reports the target unreachable, ask the gateway-side
+  // browser to open it and show the frame mirror instead.
+  //
+  // The want is REFRESHED on an interval, so the gateway stops mirroring on its
+  // own when this panel goes away — a closed tab cannot send a clear.
+  useEffect(() => {
+    let host = ''
+    try { host = new URL(url).hostname } catch { /* not a committed URL yet */ }
+    const wanted = active && !!sessionKey && !!url && unreachable && !nativeOpen && isLoopbackHost(host)
+    if (!wanted) {
+      setPreviewRequested(false)
+      return
+    }
+    let cancelled = false
+    const send = () => {
+      api.setBrowserPreview(sessionKey, url)
+        .then(() => { if (!cancelled) setPreviewRequested(true) })
+        // A refusal (non-loopback, or Browser Mode off server-side) leaves the
+        // ordinary unreachable card showing rather than an empty mirror shell.
+        .catch(() => { if (!cancelled) setPreviewRequested(false) })
+    }
+    send()
+    const id = setInterval(send, PREVIEW_HEARTBEAT_MS)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+      void api.clearBrowserPreview(sessionKey).catch(() => { /* expiry covers it */ })
+    }
+  }, [active, sessionKey, url, unreachable, nativeOpen])
 
   const persist = useCallback((u: string) => {
     if (storageKey && u) safeSetItem(storageKey, u)
