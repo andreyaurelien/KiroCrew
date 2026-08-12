@@ -6,7 +6,18 @@
  * these source lines" possible. Fenced code is the one multi-line block.
  */
 import type { CSSProperties, ReactNode } from 'react'
-import { ACCENT, ACCENT_BG, FONT_MONO, RAIL_X } from './constants'
+import {
+  ACCENT,
+  ACCENT_BG,
+  FONT_MONO,
+  HEADING_FG,
+  HEADING_RAIL,
+  HEADING_RAIL_GAP,
+  HEADING_RAIL_INDENT,
+  HEADING_RULE_SOFT,
+  HEADING_RULE_STRONG,
+  RAIL_X,
+} from './constants'
 import Clickable from '../../components/Clickable'
 import { BlockEditor } from './BlockEditor'
 import { FM_RE, LIST_MARKER_RE, indentPx } from './utils'
@@ -280,13 +291,39 @@ export function Preview({
         fontSize: HEADING_SIZES[n - 1],
         fontWeight: n <= 2 ? 700 : 600,
         lineHeight: 1.25,
-        margin: n <= 2 ? '14px 0 6px' : '10px 0 4px',
+        color: HEADING_FG,
+        marginTop: n <= 2 ? '14px' : '10px',
+        marginRight: 0,
+        marginBottom: n <= 2 ? '6px' : '4px',
+        // The rail hangs in the column gutter so heading text stays flush with
+        // body text; h1/h2 rule underneath instead and need no offset.
+        marginLeft: n <= 2 ? 0 : `-${HEADING_RAIL_INDENT}px`,
+      }
+      // The accent is chrome, never the text colour — see HEADING_FG.
+      // Longhand rather than the `border-bottom` shorthand on purpose: a
+      // shorthand whose value contains color-mix() is dropped wholesale by a
+      // strict CSS parser (jsdom does exactly that), losing the whole rule
+      // rather than just its colour.
+      if (n <= 2) {
+        style.borderBottomWidth = n === 1 ? '2px' : '1px'
+        style.borderBottomStyle = 'solid'
+        style.borderBottomColor = n === 1 ? HEADING_RULE_STRONG : HEADING_RULE_SOFT
+        style.paddingBottom = n === 1 ? '4px' : '3px'
+      } else {
+        style.borderLeftWidth = '2px'
+        style.borderLeftStyle = 'solid'
+        style.borderLeftColor = HEADING_RAIL
+        style.paddingLeft = `${HEADING_RAIL_GAP}px`
       }
       out.push(
+        // The editor inherits the heading's typography AND colour so the text
+        // does not shift shade on click; the chrome is rendered-only, which is
+        // what distinguishes the two states.
         blk(idx, idx, <Tag style={style}>{inline(head[2], idx)}</Tag>, {
           fontSize: style.fontSize,
           fontWeight: style.fontWeight,
           lineHeight: style.lineHeight,
+          color: style.color,
         }),
       )
       return
@@ -385,6 +422,9 @@ export function Preview({
 
   return (
     <div
+      // Carries the heading accent custom properties declared in `styles.ts`;
+      // without it the chrome resolves to nothing.
+      className="mdnb-note"
       style={{
         fontSize: '13px',
         lineHeight: 1.55,
