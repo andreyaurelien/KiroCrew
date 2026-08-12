@@ -546,6 +546,12 @@ def _isolate_kirocrew_home(_isolation_dirs, monkeypatch):
     home = _isolation_dirs("kirocrew-home")
     monkeypatch.setenv("KIROCREW_HOME", str(home))
     monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+    # ``_export_bound_port`` writes KIROCREW_BOUND_PORT into the real process
+    # environment when a test boots a dashboard/API server. Under xdist a
+    # worker runs many tests in one process, so a port exported by one test
+    # would leak into every later test's port resolution. Clear it per test;
+    # a test that wants it sets it via monkeypatch (which still wins).
+    monkeypatch.delenv("KIROCREW_BOUND_PORT", raising=False)
     monkeypatch.setattr("kiro_crew.config.paths._resolved_home", None)
 
 

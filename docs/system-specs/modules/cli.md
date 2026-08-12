@@ -523,15 +523,29 @@ Each step checks if the tool is already installed and skips if present.
 
 `kirocrew token` / `status` / `logout` / `stop` / `restart` must find the port
 the gateway is actually bound to. `cli_server.resolve_client_port()` resolves it
-in this order, first hit wins:
+in this order, first hit wins. The MCP stdio servers (`mcp_core` /
+`mcp_computer`) resolve their gateway API base through the same helper —
+lazily, on the first gateway call, and cached for the process lifetime — so a
+loopback callback and a client CLI command always agree on which gateway they
+are talking to:
 
 1. An explicit `--port N` flag (`0` counts — the check is `is not None`).
-2. `KIROCREW_PORT`, when it parses as an int.
-3. A port **explicitly written** in `dashboard.url`. A portless URL
+2. `KIROCREW_PORT`, when it parses as an int. Deliberately above the bound
+   export: an explicitly-set `KIROCREW_PORT` is how a caller retargets a
+   child at a DIFFERENT gateway — `pod exec` builds a client env with
+   `KIROCREW_PORT=<pod-port>` while the inherited `KIROCREW_BOUND_PORT`
+   still names the spawning live gateway, and the bound value outranking it
+   would walk pod `token`/`status`/`logout` into the live plane.
+   (`build_pod_env` additionally scrubs `KIROCREW_BOUND_PORT` outright.)
+3. `KIROCREW_BOUND_PORT`, when it parses as an int — the port the parent
+   gateway actually bound, exported once its TCP site is listening
+   (`dashboard.server._export_bound_port`). Never persisted —
+   `service_environment()` deliberately does not capture it.
+4. A port **explicitly written** in `dashboard.url`. A portless URL
    (`http://my.host`) is *not* a port choice: `parse_dashboard_url()`
    substitutes `5476` for the server's benefit, so the client re-splits the URL
    and only accepts the port when it was actually named.
-4. The sole **gateway-owned run-marker**. A running gateway records
+5. The sole **gateway-owned run-marker**. A running gateway records
    `<data-home>/run/gateway-<port>.bin` (see
    `kiro_crew.instances.run_marker`, written for the SSH token-mint), so its
    filename already advertises the port. A client with nothing configured reads
@@ -572,9 +586,9 @@ in this order, first hit wins:
    - **Ambiguity** — with several gateways up there is no basis to pick one, so
      the step refuses, prints the candidate ports and the `--port` /
      `KIROCREW_PORT` hint to stderr, and falls through.
-5. `_DEFAULT_PORT` (`5476`).
+6. `_DEFAULT_PORT` (`5476`).
 
-Step 4 is what makes a single gateway started on a non-default port
+Steps 3 and 5 are what make a single gateway started on a non-default port
 (`kirocrew gateway --port 6776`) reachable from a bare `kirocrew token` with
 zero configuration; before it existed, the client hit a dead 5476 while the
 marker naming the live gateway sat unread. Config-load, URL-parse (including a

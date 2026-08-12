@@ -226,42 +226,77 @@ def resolve_client_port(cli_port: int | None) -> int:
     Resolution order:
 
     1. Explicit ``--port`` CLI flag if the user passed one (``cli_port`` is not ``None``).
-    2. ``KIROCREW_PORT`` env var if set to a valid integer.
-    3. Port explicitly named by ``dashboard.url`` in the config file
+    2. ``KIROCREW_PORT`` env var if set to a valid integer. Deliberately ABOVE
+       the bound-port export: an explicitly-set ``KIROCREW_PORT`` is how a
+       caller retargets a child at a DIFFERENT gateway — ``pod exec`` builds a
+       client env with ``KIROCREW_PORT=<pod-port>`` precisely so the command
+       reaches the pod, while the inherited ``KIROCREW_BOUND_PORT`` still
+       names the spawning LIVE gateway. Ranking the bound value higher would
+       walk pod ``token``/``status``/``logout`` (and the local secret they
+       carry) into the live gateway — a cross-plane isolation break.
+    3. ``KIROCREW_BOUND_PORT`` env var if set to a valid integer — the port the
+       parent gateway ACTUALLY bound, exported once its TCP site is listening
+       (``dashboard.server._export_bound_port``). Below the operator override
+       (see above); above config because a bound fact from the live parent
+       beats a guess re-derived from a portless ``dashboard.url``.
+    4. Port explicitly named by ``dashboard.url`` in the config file
        (``<data-home>/config.json``), when it parses.
-    4. The sole gateway-owned run-marker (``<data-home>/run/gateway-<port>.bin``)
+    5. The sole gateway-owned run-marker (``<data-home>/run/gateway-<port>.bin``)
        — see :func:`_marker_port`. Skipped when no marker's port is held by a
        verified gateway process, and refused (with a stderr hint) when several
        are.
-    5. ``_DEFAULT_PORT`` (5476) as the final fallback.
+    6. ``_DEFAULT_PORT`` (5476) as the final fallback.
 
-    Steps 1-3 match the server-side ``parse_dashboard_url()`` logic so that
-    ``kirocrew token`` / ``status`` / ``logout`` / ``stop`` all hit the same
-    port the gateway is actually bound to when the user has configured a
+    Steps 1, 2 and 4 match the server-side ``parse_dashboard_url()`` logic so
+    that ``kirocrew token`` / ``status`` / ``logout`` / ``stop`` all hit the
+    same port the gateway is actually bound to when the user has configured a
     non-default ``dashboard.url`` (for example a dev instance on 6777 or an
-    alternative prod port like 7778). Step 4 covers the case where nothing was
-    configured at all but a gateway is up on a non-default port (e.g. started
-    with ``kirocrew gateway --port 6776``): the running gateway's own marker is
-    better evidence than the 5476 default.
+    alternative prod port like 7778). Steps 3 and 5 cover the case where
+    nothing was configured at all but a gateway is up on a non-default port
+    (e.g. started with ``kirocrew gateway --port 6776``): the parent's own
+    export, or the running gateway's marker, is better evidence than the 5476
+    default.
+    """
+    port, _ = resolve_client_port_ex(cli_port)
+    return port
+
+
+def resolve_client_port_ex(cli_port: int | None) -> tuple[int, bool]:
+    """Like :func:`resolve_client_port`, also reporting HOW the port resolved.
+
+    The second element is ``True`` when the port came from positive evidence
+    (an explicit flag, an env var, a configured port, or a verified
+    run-marker) and ``False`` when resolution fell through to
+    ``_DEFAULT_PORT``. Callers that cache a resolution for the process
+    lifetime need the distinction: a fall-through only proves nothing was
+    discoverable *at that instant* — during gateway boot the run-marker may
+    not be written yet — so pinning it would freeze the weakest outcome
+    forever, while every positive source is stable for the process lifetime.
     """
     if cli_port is not None:
-        return cli_port
+        return cli_port, True
     env_port = os.environ.get("KIROCREW_PORT")
     if env_port:
         try:
-            return int(env_port)
+            return int(env_port), True
         except ValueError:
-            # Fall through to config/marker/default — main() validates this
-            # early, but guard here too in case the helper is reached via
+            # Fall through to bound/config/marker/default — main() validates
+            # this early, but guard here too in case the helper is reached via
             # another path.
+            pass
+    bound_port = os.environ.get("KIROCREW_BOUND_PORT")
+    if bound_port:
+        try:
+            return int(bound_port), True
+        except ValueError:
             pass
     cfg_port = _config_url_port()
     if cfg_port:
-        return cfg_port
+        return cfg_port, True
     discovered = _marker_port()
     if discovered:
-        return discovered
-    return _DEFAULT_PORT
+        return discovered, True
+    return _DEFAULT_PORT, False
 
 
 def _probe_dashboard_health(port: int) -> None:

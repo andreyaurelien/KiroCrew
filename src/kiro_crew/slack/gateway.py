@@ -6587,19 +6587,32 @@ class GatewayOrchestrator:
         self._init_task_runner()
         if not self._no_dashboard:
             await self._init_dashboard()
-            # Record this gateway's own kirocrew launcher, keyed by the port it
-            # serves, so a remote token-mint execs THIS install's venv instead of
-            # a stale ~/.local/bin/kirocrew that may point at an uninstalled
-            # worktree. See kiro_crew.instances.run_marker.
-            try:
-                from kiro_crew.instances import run_marker
-
-                if self._dashboard_port:
-                    run_marker.write_marker(self._dashboard_port)
-            except Exception:
-                logger.debug("Gateway run-marker write skipped", exc_info=True)
         else:
             await self._init_api_server()
+        # Record this gateway's own kirocrew launcher, keyed by the port it
+        # serves, so a remote token-mint execs THIS install's venv instead of
+        # a stale ~/.local/bin/kirocrew that may point at an uninstalled
+        # worktree. See kiro_crew.instances.run_marker. Written for headless
+        # API-only gateways too: the marker's filename is what lets a client
+        # or MCP child discover a non-default port when neither KIROCREW_PORT
+        # nor dashboard.url names one. Dispatched as a tracked background
+        # task, never awaited: write_marker does atomic file writes plus a
+        # prune scan over prior runs' markers, so on a slow filesystem an
+        # await here would gate READY on file-count-scaled maintenance. The
+        # marker is best-effort discovery metadata — nothing at boot depends
+        # on it, and write_marker never raises. The guard keeps startup alive
+        # even when dashboard init was skipped and no port was ever resolved.
+        try:
+            from kiro_crew.instances import run_marker
+
+            if self._dashboard_port:
+                _marker_task = asyncio.create_task(
+                    asyncio.to_thread(run_marker.write_marker, self._dashboard_port)
+                )
+                self._background_tasks.add(_marker_task)
+                _marker_task.add_done_callback(self._background_tasks.discard)
+        except Exception:
+            logger.debug("Gateway run-marker write skipped", exc_info=True)
 
         # Publish the MCP-gateway broker + apply callbacks onto
         # DashboardState now that it exists (the broker started earlier).

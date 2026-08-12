@@ -48,7 +48,7 @@ from kiro_crew.config.loader import (
     resolve_agent_bindings,
 )
 from kiro_crew.context_management import COMPLETION_KEEP_DEFAULT_CHARS, summarize_result
-from kiro_crew.dashboard.origin import dashboard_socket_path, parse_dashboard_url
+from kiro_crew.dashboard.origin import dashboard_socket_path
 from kiro_crew.history import _SEARCH_SCAN_WINDOW as SEARCH_SCAN_WINDOW
 from kiro_crew.history import INCOGNITO_MEMORY_MODES, ConversationLog, search_query_tokens
 from kiro_crew.hooks import FileTooLargeError, safe_read_file_bytes
@@ -141,41 +141,114 @@ from kiro_crew.validation import (
 )
 
 
-def _resolve_api_base() -> str:
-    """Resolve the gateway API base URL from ``dashboard.url`` config."""
-    cfg = KiroCrewConfig.load()
-    _host, port = parse_dashboard_url(cfg.dashboard.url)
-    return f"http://localhost:{port}"
+def _resolve_api_port() -> tuple[int, bool]:
+    """Resolve the gateway API port a callback should aim at.
+
+    Delegates to :func:`kiro_crew.cli_server.resolve_client_port`, the same
+    precedence every client CLI command applies: ``KIROCREW_PORT``, then a
+    port **explicitly written** in ``dashboard.url``, then the sole
+    gateway-owned run-marker, then the documented default. The marker step is
+    what keeps a portless ``dashboard.url`` from collapsing to the default
+    port while a live gateway is bound elsewhere — ``parse_dashboard_url``
+    substitutes the default for the *server's* benefit (it must bind
+    something), which is exactly the wrong guess for a client callback.
+
+    The import is lazy on purpose: ``cli_server`` fans out into CLI-only
+    dependencies this stdio server otherwise never loads, and paying that once
+    on the first gateway call keeps the hot MCP-stdio import path lean.
+
+    Returns ``(port, positive)`` — ``positive`` is ``False`` when resolution
+    fell through to the default with no evidence behind it.
+    """
+    from kiro_crew.cli_server import resolve_client_port_ex
+
+    return resolve_client_port_ex(None)
 
 
-_API = _resolve_api_base()
+# Lazily-resolved caches for the gateway API port, base URL, and unix-socket
+# path. ``None`` means "not resolved yet"; the getters below fill them on
+# first use (tests may pre-seed any of them with a concrete value).
+# Deliberately NOT computed at import: resolution reads config and the
+# gateway's live run-marker, both of which can change between process start
+# and the first gateway call — an import-time snapshot froze a wrong guess
+# for the whole process lifetime. The URL and the socket path both derive
+# from the single ``_API_PORT`` resolution, so the two transports can never
+# name different gateways.
+_API_PORT: int | None = None
+_API: str | None = None
+_API_UNIX_SOCKET: str | None = None
 
 
-def _resolve_api_unix_socket() -> str:
+def _api_port() -> int:
+    """Gateway API port, resolved on first use; cached only on evidence.
+
+    A resolution that fell through to the default port is returned but NOT
+    cached: it only proves nothing was discoverable at that instant. During
+    gateway boot a broker-descended server can race the asynchronous
+    run-marker write — pinning that fall-through would freeze the wrong port
+    for the process lifetime, with restart as the only recovery. The next
+    call re-resolves and picks the marker up once it exists. Every positive
+    source (env, explicit config, verified marker) is stable, so those are
+    cached as before.
+    """
+    global _API_PORT
+    if _API_PORT is None:
+        port, positive = _resolve_api_port()
+        if not positive:
+            return port
+        _API_PORT = port
+    return _API_PORT
+
+
+def _api_base() -> str:
+    """Gateway API base URL, resolved on first use and cached.
+
+    Pinned to the IPv4 literal ``127.0.0.1`` rather than ``localhost``: these
+    requests carry ``X-Internal-Secret``, and a hostname lookup could resolve
+    to ``::1`` where a different (possibly foreign) process may be listening —
+    the gateway itself binds IPv4 loopback. Mirrors ``cli_server._CLI_LOOPBACK``.
+    """
+    global _API
+    if _API is None:
+        base = f"http://127.0.0.1:{_api_port()}"
+        if _API_PORT is None:
+            # Port resolution fell through to the default — do not pin a URL
+            # built on no evidence (see _api_port).
+            return base
+        _API = base
+    return _API
+
+
+def _api_unix_socket() -> str:
     """Path of the gateway's internal-API unix socket (may not exist yet).
 
-    Preferred transport for every ``_API`` request: connecting through it lets
-    the gateway kernel-verify (``SO_PEERCRED`` + /proc ancestry) that this
-    process actually belongs to the session its ``X-Session-Key`` header
+    Preferred transport for every gateway API request: connecting through it
+    lets the gateway kernel-verify (``SO_PEERCRED`` + /proc ancestry) that
+    this process actually belongs to the session its ``X-Session-Key`` header
     declares, instead of taking the header on faith. ``loopback_urlopen``
     checks existence per call and falls back to TCP when the file is absent
     (Windows, older gateway, bind failure) or nobody answers on it, so
-    resolving the path once at import — mirroring ``_API`` — is safe.
+    caching the path after the first resolution — mirroring ``_api_base`` —
+    is safe. Derived from the same cached ``_api_port`` resolution as the API
+    base so both transports always aim at the same gateway.
     """
-    try:
-        cfg = KiroCrewConfig.load()
-        _host, port = parse_dashboard_url(cfg.dashboard.url)
-        return str(dashboard_socket_path(port))
-    except Exception:
-        return ""
-
-
-_API_UNIX_SOCKET = _resolve_api_unix_socket()
+    global _API_UNIX_SOCKET
+    if _API_UNIX_SOCKET is None:
+        try:
+            path = str(dashboard_socket_path(_api_port()))
+        except Exception:
+            _API_UNIX_SOCKET = ""
+            return _API_UNIX_SOCKET
+        if _API_PORT is None:
+            # Same no-evidence rule as _api_base: usable now, not pinned.
+            return path
+        _API_UNIX_SOCKET = path
+    return _API_UNIX_SOCKET
 
 
 def _api_urlopen(req: urllib.request.Request | str, timeout: float):
-    """``loopback_urlopen`` against ``_API`` with the unix-socket preference."""
-    return loopback_urlopen(req, timeout=timeout, unix_socket_path=_API_UNIX_SOCKET or None)
+    """``loopback_urlopen`` against the API base with the unix-socket preference."""
+    return loopback_urlopen(req, timeout=timeout, unix_socket_path=_api_unix_socket() or None)
 
 
 # How often a sleeping `wait` polls /api/session-keepalive.
@@ -3158,13 +3231,13 @@ def _post(path: str, body: dict | None = None, *, timeout: float = 30) -> dict:
     if sk:
         headers["X-Session-Key"] = sk
     req = urllib.request.Request(
-        f"{_API}{path}",
+        f"{_api_base()}{path}",
         data=data,
         headers=headers,
         method="POST",
     )
     try:
-        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- URL is the loopback gateway (_API from dashboard.url config) + a fixed internal path; never user-controlled  # noqa: E501
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- URL is the loopback gateway (_api_base() from config/run-marker) + a fixed internal path; never user-controlled  # noqa: E501
         with _api_urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read())
     except urllib.error.HTTPError as e:
@@ -3248,7 +3321,7 @@ def _get(path: str, session_key: str | None = None) -> dict:
     if sk:
         headers["X-Session-Key"] = sk
     req = urllib.request.Request(
-        f"{_API}{path}",
+        f"{_api_base()}{path}",
         headers=headers,
     )
     try:
@@ -3270,13 +3343,13 @@ def _patch(path: str, body: dict | None = None) -> dict:
     if sk:
         headers["X-Session-Key"] = sk
     req = urllib.request.Request(
-        f"{_API}{path}",
+        f"{_api_base()}{path}",
         data=data,
         headers=headers,
         method="PATCH",
     )
     try:
-        # _API is the hardcoded loopback dashboard base and `path` is a code
+        # _api_base() is the loopback dashboard base and `path` is a code
         # literal — never attacker-controlled, so no file:// scheme risk.
         with _api_urlopen(req, timeout=30) as resp:  # nosemgrep  # noqa: E501
             return json.loads(resp.read())
@@ -3308,13 +3381,13 @@ def _put(path: str, body: dict | None = None, session_key: str | None = None) ->
     if sk:
         headers["X-Session-Key"] = sk
     req = urllib.request.Request(
-        f"{_API}{path}",
+        f"{_api_base()}{path}",
         data=data,
         headers=headers,
         method="PUT",
     )
     try:
-        # _API is the hardcoded loopback dashboard base and `path` is a code
+        # _api_base() is the loopback dashboard base and `path` is a code
         # literal — never attacker-controlled, so no file:// scheme risk.
         with _api_urlopen(req, timeout=30) as resp:  # nosemgrep  # noqa: E501
             return json.loads(resp.read())
@@ -3336,7 +3409,7 @@ def _delete(path: str, body: dict | None = None) -> dict:
     if data:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(
-        f"{_API}{path}",
+        f"{_api_base()}{path}",
         data=data,
         headers=headers,
         method="DELETE",
@@ -5085,7 +5158,7 @@ def _call_tool_inner(name: str, args: dict[str, Any]) -> str:
                     os.unlink(tmp)
                     raise
         # Resolve webhook URL
-        parsed = urlparse(_API)
+        parsed = urlparse(_api_base())
         base = f"{parsed.scheme}://{parsed.hostname}"
         if parsed.port:
             base += f":{parsed.port}"
@@ -5661,7 +5734,7 @@ def _call_tool_inner(name: str, args: dict[str, Any]) -> str:
         if sk:
             headers["X-Session-Key"] = sk
         req = urllib.request.Request(
-            f"{_API}/api/artifacts/{slug}", data=data, headers=headers, method="PATCH"
+            f"{_api_base()}/api/artifacts/{slug}", data=data, headers=headers, method="PATCH"
         )
         try:
             with _api_urlopen(req, timeout=30) as http_resp:
@@ -5723,7 +5796,7 @@ def _call_tool_inner(name: str, args: dict[str, Any]) -> str:
         if sk:
             headers["X-Session-Key"] = sk
         req = urllib.request.Request(
-            f"{_API}/api/artifacts/{slug}", data=data, headers=headers, method="PATCH"
+            f"{_api_base()}/api/artifacts/{slug}", data=data, headers=headers, method="PATCH"
         )
         try:
             with _api_urlopen(req, timeout=30) as http_resp:

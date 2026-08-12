@@ -1223,6 +1223,51 @@ def _register_mcp_routes(app: web.Application) -> None:
     )
 
 
+def _export_bound_port(runner: web.AppRunner, port: int) -> None:
+    """Advertise the actually-bound dashboard port to child processes.
+
+    Sets ``KIROCREW_BOUND_PORT`` in this process's environment once the TCP
+    site is listening, so everything the gateway spawns (kiro-cli sessions and
+    the MCP stdio servers they start) inherits the port that is really bound
+    instead of re-deriving a guess from ``dashboard.url``. A portless URL makes
+    ``parse_dashboard_url`` substitute the default port — right for the server
+    (it must bind something), wrong for a child aiming a loopback callback at
+    a gateway that may be bound elsewhere.
+
+    Deliberately a DISTINCT variable from ``KIROCREW_PORT``: that one means
+    "operator-declared port" everywhere else — ``service_environment()`` bakes
+    it into persistent unit files, and config code reads it as intent — so
+    writing bound truth into it would let a ``--port auto`` ephemeral port be
+    frozen into a service install run from a gateway-descended shell, and
+    would leak between tests through the process environment.
+    ``KIROCREW_BOUND_PORT`` carries ephemeral truth only: consumed by
+    ``cli_server.resolve_client_port`` one step below the operator override,
+    never persisted.
+
+    *port* is ``0`` for an OS-assigned ephemeral bind (``--port auto``); the
+    real port is then read back from the runner's bound addresses (only the
+    TCP site is on the runner when this runs — the unix site is added after).
+    Best-effort: when no TCP address is readable the environment is left
+    untouched, which is exactly the pre-export behavior.
+    """
+    bound = port
+    if not bound:
+        for addr in runner.addresses:
+            # TCP socknames are (host, port[, flowinfo, scope_id]) tuples; a
+            # unix socket's would be a bare str path.
+            if isinstance(addr, (tuple, list)) and len(addr) >= 2 and isinstance(addr[1], int):
+                bound = addr[1]
+                break
+    if bound:
+        os.environ["KIROCREW_BOUND_PORT"] = str(bound)
+        logger.debug("Exported KIROCREW_BOUND_PORT=%d for child processes", bound)
+    else:
+        logger.warning(
+            "Could not read the bound dashboard port; child processes will "
+            "re-derive it from config and the run-marker"
+        )
+
+
 async def _start_site(
     site: web.TCPSite,
     port: int,
@@ -3505,6 +3550,9 @@ async def start_dashboard(
     await runner.setup()
     site = web.TCPSite(runner, bind_address_for(local_only), port)
     await _start_site(site, port)
+    # Export the port this gateway ACTUALLY bound so child processes resolve
+    # loopback callbacks against the truth, not a re-derived config guess.
+    _export_bound_port(runner, port)
     # Additional kernel-verifiable transport for the internal API (POSIX only;
     # degrades to TCP-only on any failure — see _start_unix_site).
     _unix_socket_holder["path"] = await _start_unix_site(runner, port)
@@ -4079,6 +4127,9 @@ async def start_api_server(
     bind_addr = bind_address_for(local_only)
     site = web.TCPSite(runner, bind_addr, port)
     await _start_site(site, port)
+    # Export the actually-bound port for child processes (parity with
+    # start_dashboard — headless gateways spawn the same MCP stdio children).
+    _export_bound_port(runner, port)
     # Additional kernel-verifiable transport for the internal API (parity with
     # start_dashboard; POSIX only, degrades to TCP-only on any failure).
     _unix_socket_holder["path"] = await _start_unix_site(runner, port)

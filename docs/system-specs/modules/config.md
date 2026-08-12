@@ -1140,6 +1140,19 @@ The `dashboard.url` field controls where the dashboard is reachable. From it, th
 
 A **malformed** `dashboard.url` (e.g. an unterminated IPv6 literal `http://[::1` or a non-numeric port `http://host:notaport`) does **not** abort startup: `parse_dashboard_url` degrades to the defaults (`""` host, port `5476`) and logs a warning, so a single typo in the config can never take the gateway down on boot. `KIROCREW_PORT` still overrides the port regardless.
 
+Once the dashboard's TCP site is listening, the gateway **exports the
+actually-bound port as `KIROCREW_BOUND_PORT`** into its own environment, so
+every child it spawns (kiro-cli sessions and their MCP stdio servers) inherits
+the truth instead of re-deriving a guess from `dashboard.url` — a portless URL
+would otherwise collapse to the default port in the child even when the
+gateway is bound elsewhere (including `--port auto`, where the OS assigns the
+port and no config field ever names it). It is a **distinct variable from
+`KIROCREW_PORT`** on purpose: `KIROCREW_PORT` means operator intent and is
+persisted by `service_environment()` into unit files, while
+`KIROCREW_BOUND_PORT` is ephemeral observed truth that must never be frozen
+into persistent config. Clients read it via `cli_server.resolve_client_port`,
+one precedence step below the operator override.
+
 ## Model Resolution Chain
 
 When `agent.model` is `"auto"` (default):

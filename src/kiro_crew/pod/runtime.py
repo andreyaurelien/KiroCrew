@@ -1030,6 +1030,12 @@ def build_pod_env(cfg: PodConfig, home_dir: Path, port: int, checkout: Path) -> 
         or (k.endswith("_TOKEN") and not k.startswith("AWS_"))
     ]:
         env.pop(key, None)
+    # Cross-plane guard: a gateway-descended caller inherits the LIVE
+    # gateway's KIROCREW_BOUND_PORT (dashboard.server._export_bound_port).
+    # Inside a pod env it would name the wrong plane — the pod's own
+    # KIROCREW_PORT above is the target — so drop it unconditionally rather
+    # than rely on resolution precedence alone.
+    env.pop("KIROCREW_BOUND_PORT", None)
     return env
 
 
