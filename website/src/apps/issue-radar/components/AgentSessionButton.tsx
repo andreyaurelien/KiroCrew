@@ -11,7 +11,7 @@ import { i18nT } from '../../../i18n/t'
 export default function AgentSessionButton({
   icon: Icon, label, record, busy, error, onClick,
   startHint, resumeHint, pendingLabel, donePillLabel, showStatus = true,
-  disabled = false,
+  disabled = false, subdued = false,
 }: {
   icon: LucideIcon
   /** Label shown when there is no session yet. */
@@ -36,6 +36,11 @@ export default function AgentSessionButton({
    * component cannot yet tell whether a session already exists, and guessing
    * would create a duplicate. */
   disabled?: boolean
+  /** Drop the accent FILL for a bordered ghost. For a control that is present
+   * but cannot act: 40% opacity alone still reads as the pane's primary action,
+   * and a filled button that does nothing when clicked looks broken rather than
+   * gated. */
+  subdued?: boolean
 }) {
   const hasSession = !!record?.slot_key
   const resolved = record?.status === 'resolved'
@@ -53,8 +58,11 @@ export default function AgentSessionButton({
           // actions, so they carry the design system's accent fill (the same
           // bg-accent / text-accent-fg / hover:bg-accent-hover triple used for
           // primary buttons elsewhere) instead of blending into the header.
-          'inline-flex items-center gap-1 text-[12px] px-2.5 py-1 rounded-md border-none font-medium ' +
-          'bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-default ' +
+          'inline-flex items-center gap-1 text-[12px] px-2.5 py-1 rounded-md font-medium ' +
+          (subdued
+            ? 'border border-border bg-transparent text-muted '
+            : 'border-none bg-accent text-accent-fg hover:bg-accent-hover ') +
+          'disabled:opacity-40 disabled:cursor-default ' +
           'cursor-pointer whitespace-nowrap transition-colors'
         }
       >

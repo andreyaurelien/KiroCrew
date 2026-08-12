@@ -39,6 +39,7 @@ import LabelChip from './LabelChip'
 import LabelPicker from './LabelPicker'
 import MemberBadge from './MemberBadge'
 import InvestigateButton from './InvestigateButton'
+import DispatchButton from './DispatchButton'
 import { useIssueRadar } from '../context'
 import { relativeTimeOrDate, hexToRgba, asArray, detailPollMs } from '../lib/format'
 import {
@@ -769,6 +770,9 @@ export default function IssueDetail({ issue }: { issue: Issue }) {
                 row would persist a session titled "#0" with a malformed context
                 line. */}
             {!awaitingFirstPaint && <InvestigateButton repoRef={active} issue={actionIssue} />}
+            {/* Beside Investigate rather than replacing it: reading an issue before
+                working it stays useful, and the two answer different questions. */}
+            {!awaitingFirstPaint && <DispatchButton repoRef={active} />}
             {canWrite && stateKnown && (
               <StateActions
                 state={state}
