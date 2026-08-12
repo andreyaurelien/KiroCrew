@@ -18,6 +18,7 @@ from kiro_crew.messaging.link import (
     legacy_dashboard_mirror_key,
     release_conversation_location,
 )
+from kiro_crew.session import _MIRROR_OPT_OUT_FLAG as MIRROR_OPT_OUT_FLAG
 from kiro_crew.session_map import ConversationOwnershipConflict, SessionMap
 
 
@@ -538,3 +539,39 @@ class TestConversationOwnership:
             "dashboard:brand-new"
         ]
         assert reloaded.mirror_accepts_inbound("dashboard:brand-new") is True
+
+
+class TestAutomaticMirrorOptOut:
+    """The persisted refusal of automatic origin mirroring (issue #2959).
+
+    A channel that binds its own conversation on every inbound turn re-asserts
+    the mirror after a restart, so the in-channel "off" has to outlive the
+    binding it removes. Clearing ``mirror`` cannot express that — an entry with
+    no binding is indistinguishable from one that was never linked.
+    """
+
+    LINK = ChannelLink(channel_type="telegram", channel_id="7")
+
+    def test_opt_out_survives_a_reload(self, session_map, tmp_path):
+        session_map.set_flag("telegram:kirocrew:direct:7", MIRROR_OPT_OUT_FLAG, True)
+        with patch("kiro_crew.session_map.config_dir", return_value=tmp_path):
+            reloaded = SessionMap()
+        assert reloaded.get_flag("telegram:kirocrew:direct:7", MIRROR_OPT_OUT_FLAG) is True
+
+    def test_clearing_the_binding_does_not_clear_the_opt_out(self, session_map):
+        """The two are independent: unlink does both, and only one must persist."""
+        key = "telegram:kirocrew:direct:7"
+        session_map.set_flag(key, MIRROR_OPT_OUT_FLAG, True)
+        session_map.set_mirror_link(key, self.LINK)
+        assert session_map.clear_mirror_link(key) is True
+        assert session_map.get_mirror_link(key) is None
+        assert session_map.get_flag(key, MIRROR_OPT_OUT_FLAG) is True
+
+    def test_the_flag_name_is_the_one_the_session_manager_writes(self):
+        """Pins the ON-DISK spelling.
+
+        ``SessionManager.set_mirror_opt_out`` is the only writer and this file is
+        where the persisted shape is asserted; a rename on either side would
+        silently re-enable mirroring for every conversation that turned it off.
+        """
+        assert MIRROR_OPT_OUT_FLAG == "mirror_opt_out"

@@ -382,6 +382,11 @@ class TelegramDispatcher:
             _acquired = True
             if is_new:
                 await self.sessions.set_channel(session_key, channel_id)
+            # Bind this chat as the session's outbound mirror so a turn the user
+            # later takes from the dashboard is delivered back here. Slack gets
+            # this from its own per-turn thread binding; Telegram had it only
+            # behind an explicit /link.
+            self._bind_origin_mirror(session_key, route, chat_id)
             # ── Attachment ingestion (mirrors Discord) ──
             if msg.attachments:
                 attachment_result = await process_telegram_attachments(
@@ -1326,29 +1331,82 @@ class TelegramDispatcher:
             chat_type=slot,
         )
 
-    async def _handle_link(self, route: tuple[str, str], chat_id: int) -> None:
-        """Mirror this conversation's dashboard tab back to Telegram.
+    def _origin_mirror_link(self, route: tuple[str, str], chat_id: int) -> ChannelLink:
+        """The mirror location for the chat a conversation is being read in.
 
-        Binds the current session's dashboard mirror slot to this chat so the
-        dashboard turn loop delivers its replies (and the user-message echo)
-        here. ``/new`` starts a fresh, unlinked conversation.
+        One definition shared by the automatic bind, ``/link`` and ``/unlink``:
+        an unlink matches an occupied location by VALUE, so a second spelling of
+        "this chat" would let the release miss the binding the bind wrote.
+
+        Carries the forum Topic so dashboard-mirrored replies for a forum-linked
+        session thread back into the SAME Topic (via
+        ``_deliver_cross_surface_reply``'s ``thread_id=link.thread_id``), not the
+        supergroup General. ``None`` only for a DM — an authorized forum turn
+        always carries a Topic, General being denied at the gate.
+        """
+        topic = self._route_thread(route)
+        return ChannelLink(
+            "telegram",
+            channel_id=str(chat_id),
+            thread_id=(str(topic) if topic is not None else None),
+        )
+
+    def _bind_origin_mirror(
+        self, session_key: str, route: tuple[str, str], chat_id: int
+    ) -> None:
+        """Mirror this conversation's dashboard tab back to Telegram, unasked.
+
+        A channel conversation IS its own mirror: the person reading the chat is
+        the audience for every turn of that session, including the turns they
+        later take from the dashboard. Slack has always bound its own thread on
+        every inbound turn, and ``get_mirror_link`` synthesizes a mirror from
+        that binding, so a dashboard turn on a Slack conversation has always
+        reached Slack. Telegram wrote the binding only from an explicit
+        ``/link``, so the same turn reached nobody: ``_resolve_mirror_target``
+        found no ``telegram`` link and the chat sat there looking dead while the
+        conversation continued elsewhere.
+
+        Re-asserted on EVERY turn rather than only on a new session, because the
+        binding is what a restart-cold session, an unlink at this location by
+        another session, or a rival claim can take away — and only a self-healing
+        bind cannot leave a live conversation silently unmirrored. The write is
+        skipped when the binding already says this, so the steady-state cost per
+        turn is a read, not a session-map save.
+
+        Honours the persisted opt-out ``/unlink`` writes: without it, "off" would
+        last exactly until the user's next message.
+        """
+        if self.sessions.mirror_opt_out(session_key):
+            return
+        desired = self._origin_mirror_link(route, chat_id)
+        if self.sessions.get_mirror_link(session_key) == desired:
+            return
+        try:
+            self.sessions.set_mirror_link(session_key, desired)
+        except Exception:
+            # Best-effort: this runs on the turn path, and an uncaught raise here
+            # drops the turn and answers the user nothing.
+            # ConversationOwnershipConflict is unreachable while Telegram
+            # declares no session resume (two outbound-only mirrors on one
+            # conversation are permitted by design), but declaring it later would
+            # make this bind the raise site — so it is caught rather than relying
+            # on that capability staying false.
+            logger.debug(
+                "Telegram: origin mirror bind skipped for %s", session_key, exc_info=True
+            )
+
+    async def _handle_link(self, route: tuple[str, str], chat_id: int) -> None:
+        """Re-enable mirroring of this conversation's dashboard tab back here.
+
+        Mirroring is automatic (see :meth:`_bind_origin_mirror`), so this is the
+        withdrawal of a previous ``/unlink`` rather than the only way to turn it
+        on. Clearing the opt-out is the load-bearing half: rebinding without it
+        would be undone by the next automatic bind check.
         """
         assert self.client is not None
         key = self._session_key(route)
-        # Carry the forum Topic so dashboard-mirrored replies for a forum-linked
-        # session thread back into the SAME Topic (via
-        # ``_deliver_cross_surface_reply``'s ``thread_id=link.thread_id``), not
-        # the supergroup General. None only for a DM (an authorized forum turn
-        # always carries a Topic — General is denied at the gate).
-        topic = self._route_thread(route)
-        self.sessions.set_mirror_link(
-            key,
-            ChannelLink(
-                "telegram",
-                channel_id=str(chat_id),
-                thread_id=(str(topic) if topic is not None else None),
-            ),
-        )
+        self.sessions.set_mirror_opt_out(key, False)
+        self.sessions.set_mirror_link(key, self._origin_mirror_link(route, chat_id))
         # Drop any pre-unification row so a stale binding cannot outlive the
         # rebind (reads prefer the channel key, but a leftover row would still
         # answer a clear).
@@ -1363,18 +1421,15 @@ class TelegramDispatcher:
     async def _handle_unlink(self, route: tuple[str, str], chat_id: int) -> None:
         assert self.client is not None
         key = self._session_key(route)
-        # Match the location exactly as _handle_link writes it (forum Topic
-        # included). No dashboard nudge here: a swept slot's link chip is
-        # refreshed by the periodic channel_slot_reconciler push.
-        topic = self._route_thread(route)
+        # Persist the refusal BEFORE releasing: mirroring is re-asserted on every
+        # inbound turn, so a release alone would be undone by the user's next
+        # message. No dashboard nudge here: a swept slot's link chip is refreshed
+        # by the periodic channel_slot_reconciler push.
+        self.sessions.set_mirror_opt_out(key, True)
         reply, _swept = release_conversation_location(
             self.sessions,
             key=key,
-            location=ChannelLink(
-                "telegram",
-                channel_id=str(chat_id),
-                thread_id=(str(topic) if topic is not None else None),
-            ),
+            location=self._origin_mirror_link(route, chat_id),
             channel="telegram",
         )
         await self._reply(chat_id, reply, thread=self._route_thread(route))
