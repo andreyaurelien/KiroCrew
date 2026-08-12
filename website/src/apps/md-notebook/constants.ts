@@ -36,6 +36,14 @@ export const LS = {
 export const pinnedKey = (vaultId: string): string => `mdnb-pinned-${vaultId}`
 
 /**
+ * Collapsed folder names, per vault for the same reason pins are: two vaults
+ * hold different trees, so a name collapsed in one means nothing in the other.
+ * Local to this machine because it is view state, not content — writing it into
+ * the vault would sync one device's sidebar shape to every other.
+ */
+export const collapsedKey = (vaultId: string): string => `mdnb-collapsed-${vaultId}`
+
+/**
  * Sort options for the notes list. Keys are persisted, so renaming one resets
  * the user's choice to the default. Labels live in `labels.ts` (`sortLabel`),
  * keyed by these same ids, so the i18n key-reference gate can verify them.
