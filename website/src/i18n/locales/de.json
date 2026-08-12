@@ -4206,7 +4206,8 @@
         "installing": "Wird installiert…",
         "kirocrew_app_install_path": "kirocrew app install <pfad>",
         "manage_app_sources": "App-Quellen verwalten",
-        "path_to_app_directory": "/pfad/zum/app-verzeichnis"
+        "path_to_app_directory": "/pfad/zum/app-verzeichnis",
+        "registry_url_install_above_works_for_public_repo": "Die Installation per Registry-URL (oben) funktioniert für öffentliche Repositorys. Klonen Sie ein privates Repository zuerst lokal und installieren Sie es dann aus diesem Pfad."
       },
       "types": {
         "built_in": "Integriert",

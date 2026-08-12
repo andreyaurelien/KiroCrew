@@ -56,6 +56,7 @@ export default function SourcesPopover({ open, onOpenChange, onError }: {
             {i18nT('components.appstore.sourcesPopover.install_from_path')}
           </div>
           <p className="text-[12px] text-muted mb-2.5">{i18nT('components.appstore.sourcesPopover.developer_install_of_a_local_app_directory_equiv')} <code className="bg-bg-elevated px-1 py-0.5 rounded">{i18nT('components.appstore.sourcesPopover.kirocrew_app_install_path')}</code>).</p>
+          <p className="text-[12px] text-muted -mt-1 mb-2.5">{i18nT('components.appstore.sourcesPopover.registry_url_install_above_works_for_public_repo')}</p>
           <div className="flex items-center gap-2">
             <FolderOpen size={15} className="text-muted shrink-0" />
             <Input

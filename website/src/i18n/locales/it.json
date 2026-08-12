@@ -4274,7 +4274,8 @@
         "installing": "Installazione in corso…",
         "kirocrew_app_install_path": "kirocrew app install <percorso>",
         "manage_app_sources": "Gestisci le origini delle app",
-        "path_to_app_directory": "/percorso/della/directory-app"
+        "path_to_app_directory": "/percorso/della/directory-app",
+        "registry_url_install_above_works_for_public_repo": "L'installazione tramite URL del registro (sopra) funziona con i repository pubblici. Per un repository privato, clonalo prima in locale e poi installalo da quel percorso."
       },
       "types": {
         "built_in": "Integrato",

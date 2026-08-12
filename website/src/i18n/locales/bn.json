@@ -4206,7 +4206,8 @@
         "installing": "ইনস্টল হচ্ছে…",
         "kirocrew_app_install_path": "kirocrew app install <path>",
         "manage_app_sources": "অ্যাপ সোর্স পরিচালনা করুন",
-        "path_to_app_directory": "/path/to/app-directory"
+        "path_to_app_directory": "/path/to/app-directory",
+        "registry_url_install_above_works_for_public_repo": "রেজিস্ট্রি-URL ইনস্টল (উপরে) কেবল পাবলিক রিপোজিটরির জন্য কাজ করে। প্রাইভেট রিপোজিটরির জন্য, প্রথমে সেটি লোকালি ক্লোন করুন, তারপর সেই পাথ থেকে ইনস্টল করুন।"
       },
       "types": {
         "built_in": "বিল্ট-ইন",

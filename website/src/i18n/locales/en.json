@@ -3351,7 +3351,8 @@
         "install_from_path": "Install from Path",
         "kirocrew_app_install_path": "kirocrew app install <path>",
         "manage_app_sources": "Manage app sources",
-        "path_to_app_directory": "/path/to/app-directory"
+        "path_to_app_directory": "/path/to/app-directory",
+        "registry_url_install_above_works_for_public_repo": "Registry-URL install (above) works for public repos. For a private repo, clone it locally first, then install from that path."
       }
     },
     "artifactBody": {

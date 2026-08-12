@@ -4138,7 +4138,8 @@
         "installing": "正在安装…",
         "kirocrew_app_install_path": "kirocrew app install <path>",
         "manage_app_sources": "管理应用来源",
-        "path_to_app_directory": "/path/to/app-directory"
+        "path_to_app_directory": "/path/to/app-directory",
+        "registry_url_install_above_works_for_public_repo": "通过 Registry URL 安装（上方）仅适用于公开仓库。私有仓库请先克隆到本地，再从该路径安装。"
       },
       "types": {
         "built_in": "内置",

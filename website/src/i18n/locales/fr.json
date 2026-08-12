@@ -4274,7 +4274,8 @@
         "installing": "Installation…",
         "kirocrew_app_install_path": "kirocrew app install <path>",
         "manage_app_sources": "Gérer les sources d’applications",
-        "path_to_app_directory": "/path/to/app-directory"
+        "path_to_app_directory": "/path/to/app-directory",
+        "registry_url_install_above_works_for_public_repo": "L'installation par URL de registre (ci-dessus) fonctionne pour les dépôts publics. Pour un dépôt privé, clonez-le d'abord en local, puis installez-le depuis ce chemin."
       },
       "types": {
         "built_in": "Intégré",

@@ -4138,7 +4138,8 @@
         "installing": "설치 중…",
         "kirocrew_app_install_path": "kirocrew app install <path>",
         "manage_app_sources": "앱 소스 관리",
-        "path_to_app_directory": "/path/to/app-directory"
+        "path_to_app_directory": "/path/to/app-directory",
+        "registry_url_install_above_works_for_public_repo": "레지스트리 URL 설치(위)는 공개 저장소에서만 작동합니다. 비공개 저장소는 먼저 로컬로 복제한 다음 해당 경로에서 설치하세요."
       },
       "trustAppModal": {
         "cancel": "취소",

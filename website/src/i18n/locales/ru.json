@@ -4342,7 +4342,8 @@
         "installing": "Установка…",
         "kirocrew_app_install_path": "kirocrew app install <path>",
         "manage_app_sources": "Управление источниками приложений",
-        "path_to_app_directory": "/path/to/app-directory"
+        "path_to_app_directory": "/path/to/app-directory",
+        "registry_url_install_above_works_for_public_repo": "Установка по URL реестра (выше) работает для публичных репозиториев. Для приватного репозитория сначала клонируйте его локально, затем установите из этого пути."
       },
       "types": {
         "built_in": "Встроенное",

@@ -4138,7 +4138,8 @@
         "installing": "インストール中…",
         "kirocrew_app_install_path": "kirocrew app install <path>",
         "manage_app_sources": "アプリソースを管理",
-        "path_to_app_directory": "/path/to/app-directory"
+        "path_to_app_directory": "/path/to/app-directory",
+        "registry_url_install_above_works_for_public_repo": "レジストリ URL からのインストール(上記)はパブリックリポジトリで動作します。プライベートリポジトリの場合は、まずローカルにクローンしてから、そのパスからインストールしてください。"
       },
       "types": {
         "built_in": "組み込み",
