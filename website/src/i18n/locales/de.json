@@ -6395,6 +6395,12 @@
       "verdict_tap_noop": "Das war ein kurzes Tippen — im Modus „{{mode}}“ würde nichts passieren. Halte die Taste länger.",
       "verdict_toggle": "Erkannt — in einem echten Chat würde dieser Druck die Aufnahme starten und der nächste sie beenden.",
       "verdict_wrong_key": "Das war {{got}}, nicht die oben gewählte Taste {{want}}. Hat diese Tastatur sie nicht, wähle unter „{{field}}“ eine andere."
+    },
+    "filePathMenu": {
+      "open_with_default_app": "Open with default app",
+      "show_in_file_manager": "Show in file manager",
+      "copy_path": "Copy path",
+      "path_copied_no_desktop": "Path copied to clipboard (no desktop available)"
     }
   },
   "hooks": {

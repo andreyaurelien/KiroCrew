@@ -6308,6 +6308,12 @@
       "verdict_tap_noop": "短く押しました。「{{mode}}」モードでは何も起こりません。もう少し長く押してください。",
       "verdict_toggle": "認識しました。実際のチャットではこの操作で録音が始まり、次に押すと停止します。",
       "verdict_wrong_key": "押されたのは {{got}} で、上で選んだ {{want}} ではありません。お使いのキーボードにそのキーがない場合は、「{{field}}」で別のキーを選んでください。"
+    },
+    "filePathMenu": {
+      "open_with_default_app": "Open with default app",
+      "show_in_file_manager": "Show in file manager",
+      "copy_path": "Copy path",
+      "path_copied_no_desktop": "Path copied to clipboard (no desktop available)"
     }
   },
   "hooks": {

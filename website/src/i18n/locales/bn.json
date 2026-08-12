@@ -6395,6 +6395,12 @@
       "verdict_tap_noop": "এটি ছিল দ্রুত চাপ — “{{mode}}” মোডে কিছুই হত না। কী-টি আরও বেশি সময় চেপে ধরুন।",
       "verdict_toggle": "শনাক্ত হয়েছে — সত্যিকারের কথাবার্তায় এই চাপ রেকর্ডিং শুরু করত এবং পরের চাপ থামাত।",
       "verdict_wrong_key": "ওটি ছিল {{got}}, উপরে বেছে নেওয়া {{want}} নয়। এই কীবোর্ডে সেটি না থাকলে “{{field}}”-এ অন্য একটি বেছে নিন।"
+    },
+    "filePathMenu": {
+      "open_with_default_app": "Open with default app",
+      "show_in_file_manager": "Show in file manager",
+      "copy_path": "Copy path",
+      "path_copied_no_desktop": "Path copied to clipboard (no desktop available)"
     }
   },
   "hooks": {

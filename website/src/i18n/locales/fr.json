@@ -6482,6 +6482,12 @@
       "verdict_tap_noop": "C’était un appui bref — en mode « {{mode}} », rien ne se passerait. Maintenez la touche plus longtemps.",
       "verdict_toggle": "Reconnue — dans une vraie conversation, cet appui lancerait l’enregistrement et le suivant l’arrêterait.",
       "verdict_wrong_key": "C’était {{got}}, pas la touche {{want}} choisie ci-dessus. Si ce clavier n’en a pas, choisissez-en une autre sous « {{field}} »."
+    },
+    "filePathMenu": {
+      "open_with_default_app": "Open with default app",
+      "show_in_file_manager": "Show in file manager",
+      "copy_path": "Copy path",
+      "path_copied_no_desktop": "Path copied to clipboard (no desktop available)"
     }
   },
   "hooks": {

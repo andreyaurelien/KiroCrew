@@ -2045,6 +2045,12 @@
       "subtitle": "Start from a pre-made schedule — you review and save before anything runs.",
       "title": "Schedule templates",
       "use_template": "Use the {{title}} template"
+    },
+    "filePathMenu": {
+      "open_with_default_app": "Open with default app",
+      "show_in_file_manager": "Show in file manager",
+      "copy_path": "Copy path",
+      "path_copied_no_desktop": "Path copied to clipboard (no desktop available)"
     }
   },
   "hooks": {

@@ -3,7 +3,7 @@ import { hasCommandModifier } from '../utils/commandModifier'
 import { memo, useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, useImperativeHandle, forwardRef, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { RefreshCw, Ellipsis, ChevronRight, Columns2, Hash, WrapText, Zap, Maximize2, Minimize2, MessageSquare, MessageSquarePlus, Copy, BookOpen, BookmarkPlus, Camera, Check, X, Component, FileText, FileDiff, CaseSensitive, ChevronUp, ChevronDown } from 'lucide-react'
+import { RefreshCw, Ellipsis, ChevronRight, Columns2, Hash, WrapText, Zap, Maximize2, Minimize2, MessageSquare, MessageSquarePlus, Copy, BookOpen, BookmarkPlus, Camera, Check, X, Component, FileText, FileDiff, CaseSensitive, ChevronUp, ChevronDown, ExternalLink, FolderOpen } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import hljs from '../utils/hljs'
 import DOMPurify from 'dompurify'
@@ -24,6 +24,8 @@ import { api } from '../api/client'
 import { fileReadUrl, fileDownloadUrl } from '../utils/fileReadUrl'
 import { loadCommentDrafts, saveCommentDrafts, setCommentsForFile } from '../utils/commentDrafts'
 import { copyToClipboard } from '../utils/clipboard'
+import { useBranding } from '../hooks/useBranding'
+import FilePathMenu from './FilePathMenu'
 
 // ── CSS Custom Highlight API accessors ───────────────────────────────────────
 // Preview find highlights matches via the browser-native CSS Custom Highlight
@@ -402,6 +404,7 @@ export function OverflowMenu({ filePath, content, onRefresh, refreshDisabled, re
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const { directLocal } = useBranding() as { directLocal?: boolean }
   // Keyboard operability (WAI-ARIA menu pattern): roving focus across the
   // items on open, ArrowUp/Down + Home/End, Escape/Tab closes and returns
   // focus to the trigger. Shared hook with StyledSelect/AgentSelector.
@@ -508,14 +511,17 @@ export function OverflowMenu({ filePath, content, onRefresh, refreshDisabled, re
           <div className="h-px bg-border my-1 mx-2" />
           {/* File-location group: hand the file to the desktop, then the
               clipboard/download fallbacks for hosts that have no desktop.
-              Iconless like its neighbours — the group reads as a list of
-              destinations, and two glyphs among five would look arbitrary. */}
-          <button role="menuitem" data-option tabIndex={-1} className={menuRowCls} onClick={() => { void revealOrOpen(filePath, 'open'); setOpen(false) }}>
-            {i18nT('components.markdownPanel.open_with_default_app')}
-          </button>
-          <button role="menuitem" data-option tabIndex={-1} className={menuRowCls} onClick={() => { void revealOrOpen(filePath, 'reveal'); setOpen(false) }}>
-            {i18nT('components.markdownPanel.show_in_file_manager')}
-          </button>
+              Gated on directLocal — remote sessions see only copy/download. */}
+          {directLocal && (
+            <button role="menuitem" data-option tabIndex={-1} className={menuRowCls} onClick={() => { void revealOrOpen(filePath, 'open'); setOpen(false) }}>
+              <ExternalLink size={14} className="lucide-inline" /> {i18nT('components.markdownPanel.open_with_default_app')}
+            </button>
+          )}
+          {directLocal && (
+            <button role="menuitem" data-option tabIndex={-1} className={menuRowCls} onClick={() => { void revealOrOpen(filePath, 'reveal'); setOpen(false) }}>
+              <FolderOpen size={14} className="lucide-inline" /> {i18nT('components.markdownPanel.show_in_file_manager')}
+            </button>
+          )}
           <button role="menuitem" data-option tabIndex={-1} className={menuRowCls} onClick={() => { copyToClipboard(filePath); setOpen(false) }}>
             {i18nT('components.markdownPanel.copy_path')}
           </button>
@@ -1528,6 +1534,7 @@ export default memo(forwardRef<MarkdownPanelHandle, Props>(function MarkdownPane
         <div className="shrink-0 border-b border-border">
           <div className="flex items-center gap-2 h-[38px] px-3">
             <FileText size={14} className="text-muted shrink-0" />
+            <FilePathMenu filePath={filePath}>
             <span className="flex items-center min-w-0" title={filePath}>
               {crumbs.map((c, i) => {
                 const clickable = !c.isFile && !!onOpenFolder
@@ -1547,6 +1554,7 @@ export default memo(forwardRef<MarkdownPanelHandle, Props>(function MarkdownPane
                 )
               })}
             </span>
+            </FilePathMenu>
             {dirty && <span className="text-warn text-[15px] leading-none shrink-0" title={i18nT('components.markdownPanel.unsaved_changes')}>●</span>}
             {diffMode && (diffStats.added > 0 || diffStats.removed > 0) && (
               <span className="text-[11px] font-mono font-semibold shrink-0">

@@ -14,6 +14,10 @@ vi.mock('../api/client', () => ({
   },
 }))
 
+vi.mock('../hooks/useBranding', () => ({
+  useBranding: () => ({ botName: 'Test', avatar: '', directLocal: true }),
+}))
+
 const writeText = vi.fn()
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 const wrapper = ({ children }: { children: React.ReactNode }) => (

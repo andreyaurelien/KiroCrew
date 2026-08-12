@@ -6308,6 +6308,12 @@
       "verdict_tap_noop": "这是一次快速点按 —— 在“{{mode}}”模式下不会发生任何事。请按住久一点。",
       "verdict_toggle": "识别正确 —— 在真实对话里，这次按下会开始录音，下一次按下会停止。",
       "verdict_wrong_key": "刚才那个是 {{got}}，不是你在上面选的 {{want}}。如果这块键盘没有那颗键，就在“{{field}}”里换一个。"
+    },
+    "filePathMenu": {
+      "open_with_default_app": "Open with default app",
+      "show_in_file_manager": "Show in file manager",
+      "copy_path": "Copy path",
+      "path_copied_no_desktop": "Path copied to clipboard (no desktop available)"
     }
   },
   "hooks": {

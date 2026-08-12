@@ -198,6 +198,7 @@ async def api_branding(request: web.Request) -> web.Response:
         {
             "bot_name": cfg.dashboard.bot_name or "Kiro Crew",
             "avatar": "/logo.png",
+            "direct_local": is_direct_local_request(request),
         }
     )
 

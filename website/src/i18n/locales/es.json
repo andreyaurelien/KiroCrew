@@ -6482,6 +6482,12 @@
       "verdict_tap_noop": "Ese fue un toque rápido: en el modo «{{mode}}» no pasaría nada. Mantén la tecla más tiempo.",
       "verdict_toggle": "Reconocida: en un chat real esta pulsación empezaría a grabar y la siguiente lo pararía.",
       "verdict_wrong_key": "Esa era {{got}}, no la {{want}} que elegiste arriba. Si este teclado no la tiene, elige otra en «{{field}}»."
+    },
+    "filePathMenu": {
+      "open_with_default_app": "Open with default app",
+      "show_in_file_manager": "Show in file manager",
+      "copy_path": "Copy path",
+      "path_copied_no_desktop": "Path copied to clipboard (no desktop available)"
     }
   },
   "hooks": {

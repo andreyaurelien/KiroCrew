@@ -181,6 +181,40 @@ class TestBrandingEndpoint:
         body = json.loads(resp.body)
         assert body["bot_name"] == "Jarvis"
 
+    @pytest.mark.asyncio
+    async def test_branding_direct_local_true_for_local_request(self):
+        from kiro_crew.dashboard.handlers import api_branding
+
+        cfg = KiroCrewConfig()
+        req = MagicMock()
+        with (
+            patch("kiro_crew.dashboard.handlers.KiroCrewConfig.load", return_value=cfg),
+            patch(
+                "kiro_crew.dashboard.handlers.core.is_direct_local_request",
+                return_value=True,
+            ),
+        ):
+            resp = await api_branding(req)
+        body = json.loads(resp.body)
+        assert body["direct_local"] is True
+
+    @pytest.mark.asyncio
+    async def test_branding_direct_local_false_for_remote_request(self):
+        from kiro_crew.dashboard.handlers import api_branding
+
+        cfg = KiroCrewConfig()
+        req = MagicMock()
+        with (
+            patch("kiro_crew.dashboard.handlers.KiroCrewConfig.load", return_value=cfg),
+            patch(
+                "kiro_crew.dashboard.handlers.core.is_direct_local_request",
+                return_value=False,
+            ),
+        ):
+            resp = await api_branding(req)
+        body = json.loads(resp.body)
+        assert body["direct_local"] is False
+
 
 class TestLogoAssetInvariant:
     """The dashboard-served logo and the PWA 512 icon are the same image.

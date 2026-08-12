@@ -6482,6 +6482,12 @@
       "verdict_tap_noop": "Questo è stato un tocco rapido — in modalità «{{mode}}» non succederebbe nulla. Tieni premuto più a lungo.",
       "verdict_toggle": "Riconosciuto — in una chat reale questa pressione avvierebbe la registrazione e la successiva la fermerebbe.",
       "verdict_wrong_key": "Quello era {{got}}, non il {{want}} scelto sopra. Se questa tastiera non lo ha, scegline un altro in «{{field}}»."
+    },
+    "filePathMenu": {
+      "open_with_default_app": "Open with default app",
+      "show_in_file_manager": "Show in file manager",
+      "copy_path": "Copy path",
+      "path_copied_no_desktop": "Path copied to clipboard (no desktop available)"
     }
   },
   "hooks": {
