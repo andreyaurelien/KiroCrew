@@ -398,6 +398,37 @@ class TelegramClient:
             result = await self._api("sendMessage", params)
         return result.get("message_id") if result else None
 
+    async def send_rich_message(
+        self,
+        chat_id: int,
+        markdown: str,
+        *,
+        reply_markup: dict | None = None,
+        message_thread_id: int | None = None,
+    ) -> int | None:
+        """Send a Rich Message (Bot API 10.1+). Returns message_id on success.
+
+        Rich Messages natively render tables, headings, code blocks, lists, and
+        other structured markdown that the legacy sendMessage + parse_mode=HTML
+        cannot represent. The *markdown* field accepts standard GitHub-Flavored
+        Markdown including pipe-table syntax.
+
+        Returns None on failure (e.g. bot token predates API 10.1, or the
+        server rejects the payload). Callers should fall back to sendMessage.
+        """
+        params: dict[str, Any] = {
+            "chat_id": chat_id,
+            "rich_message": {"markdown": markdown},
+        }
+        if message_thread_id is not None:
+            params["message_thread_id"] = message_thread_id
+        if reply_markup:
+            params["reply_markup"] = reply_markup
+        result = await self._api("sendRichMessage", params)
+        if result:
+            return result.get("message_id")
+        return None
+
     async def send_message_draft(
         self,
         chat_id: int,

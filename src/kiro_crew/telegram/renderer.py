@@ -238,6 +238,17 @@ _ITALIC_USCORE_RE = re.compile(r"(?<!\w)_(?!\s)([^_\n]+?)(?<!\s)_(?!\w)")
 _LINK_RE = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
 _BULLET_RE = re.compile(r"^(\s*)[-*+]\s+", re.MULTILINE)
 
+# Detect GFM pipe tables: a header row followed by a separator row (|---|---|).
+# This is the trigger for routing through sendRichMessage instead of sendMessage.
+_TABLE_RE = re.compile(
+    r"(?m)^\|.+\|\s*\n\|[\s:|-]+\|\s*$"
+)
+
+
+def _has_table(text: str) -> bool:
+    """Return True if *text* contains a GFM-style pipe table."""
+    return bool(_TABLE_RE.search(text))
+
 
 def _md_to_telegram_html(text: str) -> str:
     """Translate the agent's Markdown into Telegram's supported HTML subset."""
@@ -650,6 +661,24 @@ class TelegramRenderer(Renderer):
             if keyboard is None:
                 return
             text = "…"
+
+        # --- Rich Message path: tables detected → sendRichMessage (Bot API 10.1+) ---
+        # Rich Markdown natively renders pipe tables; legacy HTML cannot.
+        # Try Rich first; on failure (old bot token, API error), fall through
+        # to the legacy HTML path below.
+        use_rich = _has_table(text) and self._stream_mid is None
+        if use_rich:
+            mid = await self._client.send_rich_message(
+                self._chat_id,
+                text,
+                reply_markup=keyboard,
+                message_thread_id=self._thread_id,
+            )
+            if mid is not None:
+                return
+            # sendRichMessage failed — fall through to legacy HTML path.
+            logger.debug("sendRichMessage failed for chat %s, falling back to HTML", self._chat_id)
+
         html_text = _md_to_telegram_html(text)
         if self._stream_mid is not None:
             ok = await self._client.edit_message(
