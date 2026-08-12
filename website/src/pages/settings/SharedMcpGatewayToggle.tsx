@@ -259,7 +259,7 @@ export function SharedMcpGatewayToggle() {
           broker is down starts the gateway, which drops and relinks every active
           session. That consequence is disclosed before the click and tied into the
           switch's accessible description below. */}
-      <SettingsCard>
+      <SettingsCard index={1}>
         <SettingsToggle
           label={i18nT('pages.settings.sharedMcpGatewayToggle.mcp_apps')}
           description={i18nT('pages.settings.sharedMcpGatewayToggle.mcp_apps_capability')}

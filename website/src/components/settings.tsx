@@ -186,9 +186,34 @@ export function SettingsSection({ title, badge, children }: SettingsSectionProps
 
 /* ── Settings Card (thin wrapper around Card with vertical gap) ── */
 
-export function SettingsCard({ children }: { children: React.ReactNode }) {
+/**
+ * Delay step between successive settings cards' entrance animations, in ms.
+ * Matches the stat-tile stagger ladder on the Overview page (`delay={i * 60}`
+ * in `pages/OverviewPage.tsx`) so every Settings section rises with the same
+ * rhythm as Overview.
+ */
+export const SETTINGS_CARD_STAGGER_MS = 60
+
+export function SettingsCard({ index, children }: {
+  /**
+   * Ordinal of this card within its panel (0-based). Maps onto the shared
+   * entrance-stagger ladder: the card's `animate-rise` entrance is delayed by
+   * `index * SETTINGS_CARD_STAGGER_MS`. Omit (or pass 0) for the first card —
+   * it rises immediately, exactly as before this prop existed. Purely
+   * presentational; gaps in the sequence (from conditionally hidden cards)
+   * are harmless. Under `prefers-reduced-motion` the delay is zeroed by the
+   * `.animate-rise` rule in `index.css` (the global reduced-motion rule only
+   * zeroes duration, and `backwards` fill would otherwise hold the card
+   * invisible for its whole delay).
+   */
+  index?: number
+  children: React.ReactNode
+}) {
   return (
-    <div className="card-glow border border-border bg-card rounded-lg p-5 mb-4 animate-rise shadow-sm transition-all">
+    <div
+      className="card-glow border border-border bg-card rounded-lg p-5 mb-4 animate-rise shadow-sm transition-all"
+      style={index ? { animationDelay: `${index * SETTINGS_CARD_STAGGER_MS}ms` } : undefined}
+    >
       <div className="flex flex-col gap-1">
         {children}
       </div>

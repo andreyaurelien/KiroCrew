@@ -432,7 +432,7 @@ export function ChatPanel() {
           />
         </SettingsCard>
 
-        <SettingsCard>
+        <SettingsCard index={1}>
           <div className="text-[13px] font-semibold text-text-strong">{i18nT('pages.settings.chatPanel.role_background')}</div>
           <div className="text-[12px] text-muted -mt-0.5">{i18nT('pages.settings.chatPanel.model_for_background_lite_heartbeat_work')}</div>
           <SettingsSelect
@@ -455,7 +455,7 @@ export function ChatPanel() {
           />
         </SettingsCard>
 
-        <SettingsCard>
+        <SettingsCard index={2}>
           <div className="text-[13px] font-semibold text-text-strong">{i18nT('pages.settings.chatPanel.role_subagents')}</div>
           <div className="text-[12px] text-muted -mt-0.5">{i18nT('pages.settings.chatPanel.model_for_spawned_sub_agents')}</div>
           <SettingsSelect
@@ -480,7 +480,7 @@ export function ChatPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.chatPanel.about_you')}>
-        <SettingsCard>
+        <SettingsCard index={3}>
           <SettingsSelect
             label={i18nT('pages.settings.chatPanel.your_role')}
             description={i18nT('pages.settings.chatPanel.kiro_matches_vocabulary_and_examples_to_your_pro')}
@@ -512,7 +512,7 @@ export function ChatPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.chatPanel.power')}>
-        <SettingsCard>
+        <SettingsCard index={4}>
           <SettingsToggle
             label={i18nT('pages.settings.chatPanel.prevent_sleep_while_running')}
             description={i18nT('pages.settings.chatPanel.keep_your_computer_awake_while_a_task_is_running')}
@@ -525,7 +525,7 @@ export function ChatPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.chatPanel.composer')}>
-        <SettingsCard>
+        <SettingsCard index={5}>
           <SettingsSelect
             label={i18nT('pages.settings.chatPanel.send_shortcut')}
             description={chatCfg.sendOnEnter === 'enter' ? i18nT('pages.settings.chatPanel.shift_enter_for_newline') : chatCfg.sendOnEnter === 'ctrl-enter' ? i18nT('pages.settings.chatPanel.enter_for_newline') : i18nT('pages.settings.chatPanel.mod_enter_for_newline', { mod: isMac ? '⌘' : 'Ctrl' })}
@@ -561,7 +561,7 @@ export function ChatPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.chatPanel.messages')}>
-        <SettingsCard>
+        <SettingsCard index={6}>
           <SettingsButtonGroup
             label={i18nT('pages.settings.chatPanel.text_streaming_style')}
             description={i18nT('pages.settings.chatPanel.immediate_mode_shows_raw_chunks_as_they_arrive_s')}
@@ -586,7 +586,7 @@ export function ChatPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.chatPanel.sessions')}>
-        <SettingsCard>
+        <SettingsCard index={7}>
           <SettingsToggle label={i18nT('pages.settings.chatPanel.split_view_session_grid')} description={i18nT('pages.settings.chatPanel.opt_in_split_the_chat_into_resizable_session_pan', { mod: isMac ? '⌘' : 'Ctrl' })} checked={dashCfg.session_grid} onChange={v => setDash({ session_grid: v })} disabled={dashDisabled} />
           <SettingsToggle label={i18nT('pages.settings.chatPanel.history_expanded')} description={i18nT('pages.settings.chatPanel.expand_history_sidebar_by_default')} checked={chatCfg.historyExpanded} onChange={v => setChat('historyExpanded', v)} />
           <SettingsToggle label={i18nT('pages.settings.chatPanel.confirm_before_closing_session')} description={i18nT('pages.settings.chatPanel.show_a_confirmation_dialog_when_closing_a_sessio')} checked={chatCfg.confirmCloseSession} onChange={v => setChat('confirmCloseSession', v)} />
@@ -600,7 +600,7 @@ export function ChatPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.chatPanel.context')}>
-        <SettingsCard>
+        <SettingsCard index={8}>
           <SettingsSelect
             label={i18nT('pages.settings.chatPanel.auto_compact_threshold')}
             description={i18nT('pages.settings.chatPanel.context_usage_at_which_auto_compaction_triggers')}
@@ -619,7 +619,7 @@ export function ChatPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.chatPanel.knowledge_library')}>
-        <SettingsCard>
+        <SettingsCard index={9}>
           <SettingsToggle
             label={i18nT('pages.settings.chatPanel.auto_add_documents')}
             description={i18nT('pages.settings.chatPanel.let_the_agent_add_documents_it_reads_while_workin')}
@@ -673,7 +673,7 @@ export function ChatPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.chatPanel.subagents')}>
-        <SettingsCard>
+        <SettingsCard index={10}>
           <SettingsSelect
             label={i18nT('pages.settings.chatPanel.completion_event_truncation')}
             description={i18nT('pages.settings.chatPanel.which_part_of_a_subagent_s_stream_to_keep_when_i')}

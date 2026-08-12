@@ -181,7 +181,7 @@ export function DisplayPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.displayPanel.zoom_font')}>
-        <SettingsCard>
+        <SettingsCard index={1}>
           {zoomSupported ? (
             <SettingsStepper label={i18nT('pages.settings.displayPanel.zoom_level')} description={i18nT('pages.settings.displayPanel.native_window_zoom_tip', { mod: modKey })} value={zoom} suffix="%" onIncrement={zoomIn} onDecrement={zoomOut} onReset={reset} />
           ) : (
@@ -205,7 +205,7 @@ export function DisplayPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.displayPanel.terminal')}>
-        <SettingsCard>
+        <SettingsCard index={2}>
           {/* Free-text family: the browser cannot enumerate OS-installed fonts, so
               the user names the font (a monospace / Nerd Font they have installed).
               resolveTerminalFontFamily quotes multi-word names and appends a
@@ -233,7 +233,7 @@ export function DisplayPanel() {
       </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.displayPanel.theme')}>
-        <SettingsCard>
+        <SettingsCard index={3}>
           <div className="flex items-center gap-2">
             <div className="flex-1 min-w-0">
               <SettingsSelect label={i18nT('pages.settings.displayPanel.theme')} description={i18nT('pages.settings.displayPanel.select_a_theme_for_the_dashboard')} value={colorTheme}
@@ -322,7 +322,7 @@ export function DisplayPanel() {
 
       {/* Sidebar Colors */}
       <SettingsSection title={i18nT('pages.settings.displayPanel.sidebar_colors')}>
-        <SettingsCard>
+        <SettingsCard index={4}>
           <SettingsButtonGroup
             label={i18nT('pages.settings.displayPanel.palette')}
             description={i18nT('pages.settings.displayPanel.choose_a_color_palette_for_your_sidebar_sessions')}

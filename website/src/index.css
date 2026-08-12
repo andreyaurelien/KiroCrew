@@ -1231,6 +1231,15 @@ html:lang(ko) {
   /* TESTING: disabled to check scroll bug */
   /* :focus-visible{outline:2px solid var(--accent);outline-offset:2px} */
   @media(prefers-reduced-motion:reduce){*:not([data-virtuoso-scroller] *),*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important}}
+  /* The rule above zeroes animation-DURATION but not animation-DELAY, and
+     `animate-rise` uses fill-mode `backwards` — so a stagger-delayed card
+     (Overview stat tiles, Settings cards) would sit fully invisible for its
+     whole delay when the user asked for no motion. Zero the delay for the
+     rise entrance specifically; `!important` is required to beat the inline
+     `animationDelay` the stagger ladder sets. Deliberately NOT global:
+     mc-line-reveal (below) documents that it relies on delays surviving
+     reduced motion. */
+  @media(prefers-reduced-motion:reduce){.animate-rise{animation-delay:0s !important}}
   ::selection{background:var(--accent-subtle);color:var(--text-strong)}
   .bg-accent::selection{background:rgba(255,255,255,.25);color:white}
   ::-webkit-scrollbar{width:6px;height:6px}

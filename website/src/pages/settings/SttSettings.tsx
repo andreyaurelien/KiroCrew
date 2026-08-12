@@ -267,7 +267,10 @@ function PushToTalkConfig() {
  * provider, model/MLX model, streaming, language, Transcribe AWS creds, runtime,
  * and the local-install flow (Whisper / MLX / Docker image).
  */
-export default function SttSettings() {
+export default function SttSettings({ cardIndex }: {
+  /** Ordinal of this component's card in the hosting panel's stagger ladder. */
+  cardIndex?: number
+} = {}) {
   const qc = useQueryClient()
   const [err, setErr] = useState('')
   const [localProfile, setLocalProfile] = useState('')
@@ -348,7 +351,10 @@ export default function SttSettings() {
 
   const stt = sttQ.data
   if (!stt) return (
-    <SettingsCard>
+    // Same ordinal as the loaded card below: the success render replaces this
+    // skeleton at the same position, and a differing delay would hold the
+    // already-loaded content blank for the delay after the swap.
+    <SettingsCard index={cardIndex}>
       <FormSkeleton rows={['toggle', 'info', 'field', 'field', 'field', 'info']} />
     </SettingsCard>
   )
@@ -394,7 +400,7 @@ export default function SttSettings() {
           </span>
         </div>
       )}
-      <SettingsCard>
+      <SettingsCard index={cardIndex}>
         <SettingsToggle label={i18nT('pages.settings.sttSettings.enabled')} description={i18nT('pages.settings.sttSettings.transcribe_voice_into_the_message_box_when_you_c')} checked={stt.enabled} onChange={v => set({ enabled: v })} disabled={saving} />
 
         <InfoRow label={i18nT('pages.settings.sttSettings.status')}>

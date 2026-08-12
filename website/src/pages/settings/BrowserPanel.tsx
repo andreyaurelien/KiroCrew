@@ -255,7 +255,7 @@ export function BrowserPanel() {
 
       {enabled && !extensionMode && (
         <SettingsSection title={i18nT('pages.settings.browserPanel.browser_engine')}>
-          <SettingsCard>
+          <SettingsCard index={1}>
             <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 10px' }}>
               {i18nT('pages.settings.browserPanel.pick_the_browser_the_agent_launches')}
             </p>
@@ -289,7 +289,7 @@ export function BrowserPanel() {
 
       {enabled && (
         <SettingsSection title={i18nT('pages.settings.browserPanel.attach_to_my_browser')}>
-          <SettingsCard>
+          <SettingsCard index={2}>
             <SettingsToggle
               label={i18nT('pages.settings.browserPanel.attach_to_my_running_browser')}
               description={i18nT('pages.settings.browserPanel.use_my_chromium_browser_with_existing_logins')}
@@ -308,7 +308,7 @@ export function BrowserPanel() {
 
       {enabled && extensionMode && (
         <SettingsSection title={i18nT('pages.settings.browserPanel.connect_your_browser')}>
-          <SettingsCard>
+          <SettingsCard index={3}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>
                 {i18nT('pages.settings.browserPanel.attach_uses_your_real_tabs_and_logins')}
@@ -364,7 +364,7 @@ export function BrowserPanel() {
 
       {enabled && !extensionMode && showExtension === false && config?.extension_mode && (
         <SettingsSection title="">
-          <SettingsCard>
+          <SettingsCard index={4}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
               <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>
                 {i18nT('pages.settings.browserPanel.switch_to_headless_mode_this_will_remove_the_sav')}

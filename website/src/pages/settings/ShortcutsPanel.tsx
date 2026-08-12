@@ -86,13 +86,17 @@ export function ShortcutsPanel() {
           />
         )}
       </SettingsCard>
-      {SHORTCUT_GROUPS.map(group => {
+      {SHORTCUT_GROUPS.map((group, gi) => {
         const entries = groupShortcuts(group, macCtrl)
         if (entries.length === 0) return null
         return (
           <div key={group}>
             <SettingsSection title={shortcutGroupLabel(group)} />
-            <SettingsCard>
+            {/* Ordinal from the full group list, not the rendered subset: a gap
+                where a group rendered null only stretches the stagger, while a
+                compacted ordinal would shift every later card's delay whenever a
+                group toggles. */}
+            <SettingsCard index={gi + 1}>
               {entries.map(s => (
                 <ShortcutRow key={s.id} label={shortcutLabel(s)} keys={formatShortcut(s).split(' + ')} />
               ))}
@@ -101,7 +105,7 @@ export function ShortcutsPanel() {
         )
       })}
       <SettingsSection title={i18nT('pages.settings.shortcutsPanel.search')} />
-      <SettingsCard>
+      <SettingsCard index={SHORTCUT_GROUPS.length + 1}>
         <SearchEverywhereConfig />
       </SettingsCard>
     </div>
