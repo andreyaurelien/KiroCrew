@@ -2481,6 +2481,9 @@
         "view_folders": "Dossiers",
         "view_list": "Liste simple"
       },
+      "preview": {
+        "mermaidError": "Diagramme Mermaid invalide — sa source est affichée."
+      },
       "row": {
         "delete": "Supprimer la note",
         "deleteAction": "Supprimer",

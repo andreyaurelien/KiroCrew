@@ -2481,6 +2481,9 @@
         "view_folders": "Carpetas",
         "view_list": "Lista plana"
       },
+      "preview": {
+        "mermaidError": "Diagrama Mermaid no válido: se muestra su código fuente."
+      },
       "row": {
         "delete": "Eliminar nota",
         "deleteAction": "Eliminar",

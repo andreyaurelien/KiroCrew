@@ -340,3 +340,27 @@ export function savePref(key: string, value: unknown): void {
     /* storage unavailable — preferences simply do not persist */
   }
 }
+
+/**
+ * A closed ` ```mermaid ` fence starting at `start`, or null.
+ *
+ * Strict on the opening line (` ```mermaid ` alone) so other info-strings keep
+ * their generic code-block rendering, but the closing scan accepts any line
+ * starting with ` ``` ` — the same rule the generic fence toggle applies — so
+ * both parsers always agree on where a block ends. An UNCLOSED mermaid fence
+ * returns null on purpose: the generic path already renders run-away fences as
+ * code until EOF, and a half-typed diagram flashing through the renderer on
+ * every keystroke would be noise.
+ */
+export function parseMermaidBlock(
+  lines: string[],
+  start: number,
+): { code: string; end: number } | null {
+  if (!/^```mermaid\s*$/.test(lines[start])) return null
+  for (let i = start + 1; i < lines.length; i++) {
+    if (lines[i].startsWith('```')) {
+      return { code: lines.slice(start + 1, i).join('\n'), end: i }
+    }
+  }
+  return null
+}

@@ -2397,6 +2397,9 @@
         "view_folders": "文件夹",
         "view_list": "平铺列表"
       },
+      "preview": {
+        "mermaidError": "无效的 Mermaid 图表——显示其源代码。"
+      },
       "row": {
         "delete": "删除笔记",
         "deleteAction": "删除",

@@ -2481,6 +2481,9 @@
         "view_folders": "Pastas",
         "view_list": "Lista simples"
       },
+      "preview": {
+        "mermaidError": "Diagrama Mermaid inválido — mostrando o código-fonte."
+      },
       "row": {
         "delete": "Excluir nota",
         "deleteAction": "Excluir",

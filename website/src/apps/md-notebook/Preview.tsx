@@ -20,7 +20,8 @@ import {
 } from './constants'
 import Clickable from '../../components/Clickable'
 import { BlockEditor } from './BlockEditor'
-import { FM_RE, LIST_MARKER_RE, indentPx, parseTable } from './utils'
+import { MermaidBlock } from './MermaidBlock'
+import { FM_RE, LIST_MARKER_RE, indentPx, parseMermaidBlock, parseTable } from './utils'
 import type { ParsedTable, TableAlign } from './utils'
 import type { EditRange } from './types'
 import { urlTransform } from '../../utils/urlTransform'
@@ -288,8 +289,9 @@ export function Preview({
   }
 
   lines.forEach((line, idx) => {
-    // Lines already consumed by a multi-line block (a table's delimiter row and
-    // body) render as part of that block, not again on their own.
+    // Lines already consumed by a multi-line block (a table's delimiter row
+    // and body, a mermaid fence) render as part of that block, not again on
+    // their own.
     if (idx <= skipTo) return
 
     // Any line that is not a list item ends the list, so the rails stop there.
@@ -297,6 +299,25 @@ export function Preview({
     if (!LIST_MARKER_RE.test(line)) stack = []
 
     if (line.startsWith('```')) {
+      if (!inCode) {
+        // A closed ```mermaid fence renders as a diagram; clicking it opens
+        // the fenced SOURCE, and an unclosed one falls through to the generic
+        // code path below like any other run-away fence.
+        const mermaid = parseMermaidBlock(lines, idx)
+        if (mermaid) {
+          skipTo = mermaid.end
+          out.push(
+            blk(
+              idx,
+              mermaid.end,
+              <MermaidBlock code={mermaid.code} />,
+              { fontSize: '12px', fontFamily: FONT_MONO },
+              { split: false },
+            ),
+          )
+          return
+        }
+      }
       if (inCode) {
         out.push(
           blk(

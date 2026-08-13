@@ -2439,6 +2439,9 @@
         "view_folders": "Ordner",
         "view_list": "Flache Liste"
       },
+      "preview": {
+        "mermaidError": "Ungültiges Mermaid-Diagramm — Quelltext wird angezeigt."
+      },
       "row": {
         "delete": "Notiz löschen",
         "deleteAction": "Löschen",

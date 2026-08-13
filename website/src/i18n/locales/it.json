@@ -2481,6 +2481,9 @@
         "view_folders": "Cartelle",
         "view_list": "Elenco semplice"
       },
+      "preview": {
+        "mermaidError": "Diagramma Mermaid non valido: viene mostrato il codice sorgente."
+      },
       "row": {
         "delete": "Elimina la nota",
         "deleteAction": "Elimina",

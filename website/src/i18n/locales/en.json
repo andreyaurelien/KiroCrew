@@ -1459,6 +1459,9 @@
         "view_folders": "Folders",
         "view_list": "Flat list"
       },
+      "preview": {
+        "mermaidError": "Invalid Mermaid diagram — showing its source."
+      },
       "row": {
         "delete": "Delete note",
         "deleteAction": "Delete",

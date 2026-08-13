@@ -2397,6 +2397,9 @@
         "view_folders": "フォルダー",
         "view_list": "フラットリスト"
       },
+      "preview": {
+        "mermaidError": "無効な Mermaid 図 — ソースを表示しています。"
+      },
       "row": {
         "delete": "ノートを削除",
         "deleteAction": "削除",

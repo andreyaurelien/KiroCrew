@@ -2439,6 +2439,9 @@
         "view_folders": "ফোল্ডার",
         "view_list": "সরল তালিকা"
       },
+      "preview": {
+        "mermaidError": "অবৈধ Mermaid ডায়াগ্রাম — সোর্স দেখানো হচ্ছে।"
+      },
       "row": {
         "delete": "নোট মুছুন",
         "deleteAction": "মুছুন",

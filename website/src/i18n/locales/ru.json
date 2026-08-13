@@ -2523,6 +2523,9 @@
         "view_folders": "Папки",
         "view_list": "Плоский список"
       },
+      "preview": {
+        "mermaidError": "Недопустимая диаграмма Mermaid — показан исходный код."
+      },
       "row": {
         "delete": "Удалить заметку",
         "deleteAction": "Удалить",
