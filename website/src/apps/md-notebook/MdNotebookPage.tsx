@@ -2031,6 +2031,18 @@ export default function MdNotebookPage() {
               display: 'flex',
               gap: '4px',
               alignItems: 'center',
+              // The cluster's width is content-driven (the sync label varies by
+              // locale and state), so on a pane too narrow to seat it in one
+              // row it would poke past the left edge and `overflow-x-hidden`
+              // would clip the view controls. Cap it to the measured band and
+              // wrap instead: every control stays reachable, and the wrapped
+              // height flows into the stacking arithmetic above, which already
+              // drops the title below whatever the cluster occupies.
+              maxWidth: headerBandWidth
+                ? `${Math.max(0, headerBandWidth - COLUMN_PAD_X * 2)}px`
+                : undefined,
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
             }}
           >
             {/* Rendered / raw switch */}

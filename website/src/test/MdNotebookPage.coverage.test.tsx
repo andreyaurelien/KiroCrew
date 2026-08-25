@@ -440,6 +440,26 @@ describe('MdNotebookPage', () => {
     }
   })
 
+  it('caps the control cluster to the pane and wraps it on a narrow pane', async () => {
+    const restore = stubHeaderLayout({ band: 320, controls: 208 })
+    try {
+      await renderWithOpenNote()
+      // A long locale's sync label can make the cluster wider than the pane
+      // itself; uncapped, its left edge pokes past the pane and
+      // `overflow-x-hidden` clips the view controls. The cap holds it to the
+      // band minus both pads (a plain pixel value, since happy-dom drops
+      // max()/calc() expressions), and wrap keeps every control reachable.
+      let cluster: HTMLElement | null = screen.getByRole('button', { name: 'Medium width' })
+      while (cluster && cluster.style.position !== 'absolute') cluster = cluster.parentElement
+      expect(cluster).not.toBeNull()
+      expect(cluster!.style.maxWidth).toBe(`${320 - COLUMN_PAD_X * 2}px`)
+      expect(cluster!.style.flexWrap).toBe('wrap')
+      expect(cluster!.style.justifyContent).toBe('flex-end')
+    } finally {
+      restore()
+    }
+  })
+
   it('debounces an edit before persisting it, and does not save on the keystroke', async () => {
     await renderWithOpenNote()
     await userEvent.click(screen.getByRole('button', { name: 'Markdown source' }))
