@@ -5426,6 +5426,8 @@
       "removals_other": "{{count}} 处删除",
       "show": "展开",
       "show_less": "收起",
+      "switch_to_split_view": "切换到分屏视图",
+      "switch_to_unified_view": "切换到统一视图",
       "this_document_is_tracked_as_a_session_artifact_n": "此文档被记录为会话工件，而非源文件更改",
       "toggle_diff": "显示或隐藏 {{path}} 的差异"
     },

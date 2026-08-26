@@ -5519,6 +5519,8 @@
       "removals_other": "{{count}} हटाई गई पंक्तियाँ",
       "show": "दिखाएँ",
       "show_less": "कम दिखाएँ",
+      "switch_to_split_view": "स्प्लिट व्यू पर जाएँ",
+      "switch_to_unified_view": "यूनिफ़ाइड व्यू पर जाएँ",
       "this_document_is_tracked_as_a_session_artifact_n": "यह दस्तावेज़ सत्र आर्टिफ़ैक्ट के रूप में ट्रैक किया जाता है, सोर्स-फ़ाइल बदलाव के रूप में नहीं",
       "toggle_diff": "{{path}} का डिफ़ दिखाएँ या छिपाएँ"
     },

@@ -5426,6 +5426,8 @@
       "removals_other": "삭제 {{count}}건",
       "show": "표시",
       "show_less": "간략히 보기",
+      "switch_to_split_view": "분할 보기로 전환",
+      "switch_to_unified_view": "통합 보기로 전환",
       "this_document_is_tracked_as_a_session_artifact_n": "이 문서는 소스 파일 변경이 아니라 세션 아티팩트로 추적됩니다",
       "toggle_diff": "{{path}}의 차이 표시 또는 숨기기"
     },

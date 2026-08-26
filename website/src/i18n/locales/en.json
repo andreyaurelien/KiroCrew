@@ -4019,6 +4019,8 @@
       "removals_other": "{{count}} removals",
       "show": "Show",
       "show_less": "Show less",
+      "switch_to_split_view": "Switch to split view",
+      "switch_to_unified_view": "Switch to unified view",
       "this_document_is_tracked_as_a_session_artifact_n": "This document is tracked as a session artifact, not a source-file change",
       "toggle_diff": "Show or hide the diff for {{path}}"
     },

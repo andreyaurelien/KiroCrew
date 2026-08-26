@@ -5519,6 +5519,8 @@
       "removals_other": "{{count}}টি অপসারণ",
       "show": "দেখান",
       "show_less": "কম দেখান",
+      "switch_to_split_view": "স্প্লিট ভিউতে যাও",
+      "switch_to_unified_view": "ইউনিফায়েড ভিউতে যাও",
       "this_document_is_tracked_as_a_session_artifact_n": "এই ডকুমেন্টটি সেশন আর্টিফ্যাক্ট হিসেবে ট্র্যাক করা হয়, সোর্স-ফাইলের পরিবর্তন হিসেবে নয়",
       "toggle_diff": "{{path}}-এর ডিফ দেখান বা লুকান"
     },

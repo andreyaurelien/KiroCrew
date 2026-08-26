@@ -5519,6 +5519,8 @@
       "removals_other": "{{count}} Entfernungen",
       "show": "Anzeigen",
       "show_less": "Weniger anzeigen",
+      "switch_to_split_view": "Zur geteilten Ansicht wechseln",
+      "switch_to_unified_view": "Zur einheitlichen Ansicht wechseln",
       "this_document_is_tracked_as_a_session_artifact_n": "Dieses Dokument wird als Sitzungsartefakt erfasst, nicht als Änderung einer Quelldatei",
       "toggle_diff": "Diff für {{path}} ein- oder ausblenden"
     },

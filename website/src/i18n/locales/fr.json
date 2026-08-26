@@ -5612,6 +5612,8 @@
       "removals_other": "{{count}} suppressions",
       "show": "Afficher",
       "show_less": "Afficher moins",
+      "switch_to_split_view": "Passer à la vue divisée",
+      "switch_to_unified_view": "Passer à la vue unifiée",
       "this_document_is_tracked_as_a_session_artifact_n": "Ce document est suivi comme un artefact de session, pas comme une modification de fichier source",
       "toggle_diff": "Afficher ou masquer le diff de {{path}}"
     },

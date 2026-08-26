@@ -5426,6 +5426,8 @@
       "removals_other": "{{count}} 件の削除",
       "show": "表示",
       "show_less": "表示を減らす",
+      "switch_to_split_view": "分割ビューに切り替え",
+      "switch_to_unified_view": "統一ビューに切り替え",
       "this_document_is_tracked_as_a_session_artifact_n": "このドキュメントはセッションアーティファクトとして追跡されており、ソースファイルの変更ではありません",
       "toggle_diff": "{{path}} の差分を表示または非表示にする"
     },

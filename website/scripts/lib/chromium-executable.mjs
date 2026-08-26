@@ -1,0 +1,28 @@
+/**
+ * Shared Chromium resolution for the capture harnesses: honour
+ * PLAYWRIGHT_CHROMIUM, else the newest cached headless shell, else return
+ * undefined so `chromium.launch()` falls back to the Playwright pin.
+ * Extracted from capture-diff-split-preference.mjs so sibling harnesses can
+ * share it instead of cloning it (jscpd runs at a 0% duplication threshold).
+ */
+import { existsSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { homedir } from 'node:os'
+
+export function chromiumExecutable() {
+  if (process.env.PLAYWRIGHT_CHROMIUM) return process.env.PLAYWRIGHT_CHROMIUM
+  const cache = join(homedir(), '.cache', 'ms-playwright')
+  if (!existsSync(cache)) return undefined
+  const rev = d => parseInt((/-(\d+)$/.exec(d) || [])[1] || '0', 10)
+  const candidates = readdirSync(cache)
+    .filter(d => d.startsWith('chromium_headless_shell-') || d.startsWith('chromium-'))
+    .sort((a, b) => rev(b) - rev(a))
+    .map(d => [
+      join(cache, d, 'chrome-headless-shell-mac-arm64', 'chrome-headless-shell'),
+      join(cache, d, 'chrome-headless-shell-linux64', 'chrome-headless-shell'),
+      join(cache, d, 'chrome-linux64', 'chrome'),
+      join(cache, d, 'chrome-linux', 'chrome'),
+    ])
+    .flat()
+  return candidates.find(existsSync)
+}
