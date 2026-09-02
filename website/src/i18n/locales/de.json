@@ -5788,6 +5788,7 @@
       "null": "null",
       "office_download_hint": "Für diese Datei ist keine Vorschau verfügbar. Laden Sie sie herunter, um sie in Word, Excel, PowerPoint oder einem kompatiblen Programm zu öffnen.",
       "office_download_original": "Original herunterladen",
+      "office_open_hint": "Für diese Datei ist keine Vorschau verfügbar. Öffnen Sie sie in ihrem Programm oder laden Sie eine Kopie herunter.",
       "office_preview_loading": "Vorschau wird geladen …",
       "office_preview_truncated": "Die Vorschau zeigt nur den Anfang dieses Dokuments. Laden Sie das Original herunter, um den vollständigen Inhalt zu sehen.",
       "open_in_new_tab": "In neuem Tab öffnen",

@@ -5883,6 +5883,7 @@
       "null": "null",
       "office_download_hint": "La vista previa no está disponible para este archivo. Descárgalo para abrirlo en Word, Excel, PowerPoint o un visor compatible.",
       "office_download_original": "Descargar original",
+      "office_open_hint": "La vista previa no está disponible para este archivo. Ábrelo en su aplicación o descarga una copia.",
       "office_preview_loading": "Cargando la vista previa…",
       "office_preview_truncated": "La vista previa muestra solo el principio de este documento. Descarga el original para ver el contenido completo.",
       "open_in_new_tab": "Abrir en una pestaña nueva",

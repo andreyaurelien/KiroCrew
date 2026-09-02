@@ -5883,6 +5883,7 @@
       "null": "null",
       "office_download_hint": "L'aperçu n'est pas disponible pour ce fichier. Téléchargez-le pour l'ouvrir dans Word, Excel, PowerPoint ou un lecteur compatible.",
       "office_download_original": "Télécharger l'original",
+      "office_open_hint": "L'aperçu n'est pas disponible pour ce fichier. Ouvrez-le dans son application ou téléchargez une copie.",
       "office_preview_loading": "Chargement de l'aperçu…",
       "office_preview_truncated": "L'aperçu ne montre que le début de ce document. Téléchargez l'original pour voir l'intégralité du contenu.",
       "open_in_new_tab": "Ouvrir dans un nouvel onglet",

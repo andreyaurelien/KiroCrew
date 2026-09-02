@@ -5883,6 +5883,7 @@
       "null": "null",
       "office_download_hint": "A pré-visualização não está disponível para este arquivo. Baixe-o para abrir no Word, Excel, PowerPoint ou em um visualizador compatível.",
       "office_download_original": "Baixar original",
+      "office_open_hint": "A pré-visualização não está disponível para este arquivo. Abra-o no aplicativo correspondente ou baixe uma cópia.",
       "office_preview_loading": "Carregando visualização…",
       "office_preview_truncated": "A pré-visualização mostra apenas o início deste documento. Baixe o original para ver o conteúdo completo.",
       "open_in_new_tab": "Abrir em nova aba",
